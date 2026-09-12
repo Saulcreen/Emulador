@@ -501,6 +501,7 @@
   var pendingRom = null;  // { buffer, size, suggestedName } mientras se llena el modal
   var pendingCoverDataUrl = null;
   var reuploadTargetId = null; // cuando el usuario re-sube un ROM grande que no se pudo guardar
+  var emulatorRunning = false; // evita cerrar/recargar de golpe mientras el juego está guardando
 
   var els = {
     grid: document.getElementById('grid'),
@@ -1019,8 +1020,10 @@
       window.EJS_netplayICEServers = NETPLAY_ICE_SERVERS;
       els.playerHint.innerHTML = 'Multijugador activo: en la barra de EmulatorJS busca el ícono de <strong>red/personas</strong> para crear o unirte a una sala. Todos deben tener el mismo juego y usar tu mismo servidor de netplay.';
     } else {
-      els.playerHint.innerHTML = 'Toca o pasa el mouse cerca del borde de la pantalla del juego: ahí aparece la barra de EmulatorJS con el ícono de engranaje ⚙ para <strong>configurar teclas</strong>, guardar partida, pantalla completa y más.';
+      els.playerHint.innerHTML = 'Toca o pasa el mouse cerca del borde de la pantalla del juego: ahí aparece la barra de EmulatorJS con el ícono de engranaje ⚙ para <strong>configurar teclas</strong>, guardar partida, pantalla completa y más. Después de guardar dentro del juego, espera unos segundos antes de salir para que el progreso quede bien guardado.';
     }
+
+    emulatorRunning = true;
 
     var script = document.createElement('script');
     script.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
@@ -1032,7 +1035,16 @@
 
   els.exitPlayer.addEventListener('click', function(){
     if(confirm('¿Volver al estante? Se recargará la página para dejar todo limpio.')){
-      location.reload();
+      emulatorRunning = false;
+      showToast('Guardando progreso antes de salir…', 2500);
+      setTimeout(function(){ location.reload(); }, 2000);
+    }
+  });
+
+  window.addEventListener('beforeunload', function(e){
+    if(emulatorRunning){
+      e.preventDefault();
+      e.returnValue = '';
     }
   });
 
