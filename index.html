@@ -552,7 +552,7 @@
   /* ---------- IndexedDB storage (funciona en cualquier navegador, sin límite de 5MB) ---------- */
 
   var DB_NAME = 'estante-gba-db';
-  var DB_VERSION = 1;
+  var DB_VERSION = 2;
   var dbPromise = null;
 
   function openDB(){
@@ -564,6 +564,7 @@
         var db = e.target.result;
         if(!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
         if(!db.objectStoreNames.contains('roms')) db.createObjectStore('roms');
+        if(!db.objectStoreNames.contains('states')) db.createObjectStore('states');
       };
       req.onsuccess = function(){ resolve(req.result); };
       req.onerror = function(){ reject(req.error); };
@@ -651,6 +652,32 @@
   }
 
   /* ---------- netplay settings ---------- */
+
+  function numericGameId(name){
+    // EmulatorJS exige que EJS_gameID sea un número, y debe ser el mismo
+    // para todos los jugadores de una sala de netplay, así que se calcula
+    // de forma determinista a partir del nombre del juego.
+    var h = 0;
+    var str = String(name || 'GBA');
+    for(var i=0; i<str.length; i++){ h = (h * 31 + str.charCodeAt(i)) | 0; }
+    return Math.abs(h) || 1;
+  }
+
+  async function saveGameState(gameId, stateBuffer){
+    try{
+      await idbSet('states', gameId, stateBuffer);
+    }catch(e){
+      console.error('No se pudo guardar el progreso:', e);
+    }
+  }
+
+  async function loadGameState(gameId){
+    try{
+      return await idbGet('states', gameId);
+    }catch(e){
+      return null;
+    }
+  }
 
   var NETPLAY_ICE_SERVERS = [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -997,7 +1024,8 @@
     ['EJS_player','EJS_core','EJS_pathtodata','EJS_gameUrl','EJS_gameName',
      'EJS_startOnLoaded','EJS_color','EJS_backgroundColor','EJS_emulator',
      'EJS_biosUrl','EJS_alignStartButton','EJS_gameID','EJS_netplayServer',
-     'EJS_netplayICEServers','EJS_defaultOptions'].forEach(function(k){ try{ delete window[k]; }catch(e){ window[k] = undefined; } });
+     'EJS_netplayICEServers','EJS_defaultOptions','EJS_loadStateURL',
+     'EJS_onSaveState'].forEach(function(k){ try{ delete window[k]; }catch(e){ window[k] = undefined; } });
 
     var objectUrl = URL.createObjectURL(blob_for(game));
     var netplayServer = await getNetplayServer();
@@ -1015,15 +1043,32 @@
       'save-state-location': 'browser'
     };
 
+    // Id numérico consistente para este juego (requerido por EmulatorJS,
+    // incluso fuera de netplay, para no mezclar progresos entre juegos).
+    window.EJS_gameID = numericGameId(game.name);
+
+    // Guarda automáticamente el progreso en la base de datos de la app
+    // cada vez que se usa "Guardar Estado" dentro del emulador.
+    window.EJS_onSaveState = function(e){
+      try{
+        var stateBuffer = e && e[1] ? e[1] : null;
+        if(stateBuffer) saveGameState(game.id, stateBuffer);
+      }catch(err){ console.error('No se pudo capturar el progreso:', err); }
+    };
+
+    // Si ya hay un progreso guardado para este juego, se carga solo al abrir.
+    var savedState = await loadGameState(game.id);
+    if(savedState){
+      var stateBlob = new Blob([savedState], { type: 'application/octet-stream' });
+      window.EJS_loadStateURL = URL.createObjectURL(stateBlob);
+    }
+
     if(netplayServer){
-      // El id del juego debe ser el mismo para todos los jugadores de una
-      // partida, así que se basa en el nombre (no en el id local aleatorio).
-      window.EJS_gameID = game.name;
       window.EJS_netplayServer = netplayServer;
       window.EJS_netplayICEServers = NETPLAY_ICE_SERVERS;
       els.playerHint.innerHTML = 'Multijugador activo: busca el ícono de <strong>red/personas</strong> en la barra de EmulatorJS. Uno debe hacer clic en "Create a Room" (Crear sala) y compartir el código que aparece; el otro jugador entra al mismo juego, abre el mismo menú y usa "Join Room" (Unirse a sala) pegando ese código. Solo entonces quedan conectados — no basta con que ambos tengan el mismo servidor configurado.';
     } else {
-      els.playerHint.innerHTML = 'Toca o pasa el mouse cerca del borde de la pantalla del juego: ahí aparece la barra de EmulatorJS con el ícono de engranaje ⚙ para <strong>configurar teclas</strong>, guardar partida, pantalla completa y más. Después de guardar dentro del juego, espera unos segundos antes de salir para que el progreso quede bien guardado.';
+      els.playerHint.innerHTML = 'Toca o pasa el mouse cerca del borde de la pantalla del juego: ahí aparece la barra de EmulatorJS con el ícono de engranaje ⚙ para <strong>configurar teclas</strong>, guardar partida, pantalla completa y más. Usa "Guardar Estado" para que tu progreso se recuerde la próxima vez que abras este juego.';
     }
 
     emulatorRunning = true;
