@@ -997,7 +997,7 @@
     ['EJS_player','EJS_core','EJS_pathtodata','EJS_gameUrl','EJS_gameName',
      'EJS_startOnLoaded','EJS_color','EJS_backgroundColor','EJS_emulator',
      'EJS_biosUrl','EJS_alignStartButton','EJS_gameID','EJS_netplayServer',
-     'EJS_netplayICEServers'].forEach(function(k){ try{ delete window[k]; }catch(e){ window[k] = undefined; } });
+     'EJS_netplayICEServers','EJS_defaultOptions'].forEach(function(k){ try{ delete window[k]; }catch(e){ window[k] = undefined; } });
 
     var objectUrl = URL.createObjectURL(blob_for(game));
     var netplayServer = await getNetplayServer();
@@ -1011,6 +1011,9 @@
     window.EJS_color = '#9b7fd6';
     window.EJS_backgroundColor = '#0c0b10';
     window.EJS_alignStartButton = 'center';
+    window.EJS_defaultOptions = {
+      'save-state-location': 'browser'
+    };
 
     if(netplayServer){
       // El id del juego debe ser el mismo para todos los jugadores de una
@@ -1018,7 +1021,7 @@
       window.EJS_gameID = game.name;
       window.EJS_netplayServer = netplayServer;
       window.EJS_netplayICEServers = NETPLAY_ICE_SERVERS;
-      els.playerHint.innerHTML = 'Multijugador activo: en la barra de EmulatorJS busca el ícono de <strong>red/personas</strong> para crear o unirte a una sala. Todos deben tener el mismo juego y usar tu mismo servidor de netplay.';
+      els.playerHint.innerHTML = 'Multijugador activo: busca el ícono de <strong>red/personas</strong> en la barra de EmulatorJS. Uno debe hacer clic en "Create a Room" (Crear sala) y compartir el código que aparece; el otro jugador entra al mismo juego, abre el mismo menú y usa "Join Room" (Unirse a sala) pegando ese código. Solo entonces quedan conectados — no basta con que ambos tengan el mismo servidor configurado.';
     } else {
       els.playerHint.innerHTML = 'Toca o pasa el mouse cerca del borde de la pantalla del juego: ahí aparece la barra de EmulatorJS con el ícono de engranaje ⚙ para <strong>configurar teclas</strong>, guardar partida, pantalla completa y más. Después de guardar dentro del juego, espera unos segundos antes de salir para que el progreso quede bien guardado.';
     }
