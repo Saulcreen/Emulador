@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estante GBA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep: #14121a;
+    --bg-panel: #1e1b28;
+    --bg-panel-raised: #262233;
+    --shell: #6b4fa0;
+    --shell-bright: #9b7fd6;
+    --screen-glow: #9fe870;
+    --screen-glow-dim: #5a8a44;
+    --text-primary: #f2eef9;
+    --text-muted: #a89dc0;
+    --danger: #d1637a;
+    --danger-bright: #e888a0;
+    --border-soft: #352f47;
+    --radius-cart: 10px;
+    --font-pixel: 'Press Start 2P', monospace;
+    --font-body: 'Inter', system-ui, sans-serif;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin: 0;
+    padding: 0;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    min-height: 100vh;
+  }
+
+  body{
+    background-image:
+      radial-gradient(circle at 15% 0%, rgba(107,79,160,0.16), transparent 45%),
+      radial-gradient(circle at 85% 100%, rgba(159,232,112,0.06), transparent 40%);
+    background-attachment: fixed;
+  }
+
+  a{ color: inherit; }
+
+  button{
+    font-family: var(--font-body);
+    cursor: pointer;
+  }
+
+  button:focus-visible,
+  input:focus-visible,
+  [tabindex]:focus-visible{
+    outline: 2px solid var(--screen-glow);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  /* ---------- Layout shell ---------- */
+
+  .app{
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 28px 20px 80px;
+  }
+
+  header.top{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+
+  .brand{
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .brand-mark{
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: linear-gradient(155deg, var(--shell-bright), var(--shell));
+    position: relative;
+    flex-shrink: 0;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.15);
+  }
+  .brand-mark::after{
+    content: "";
+    position: absolute;
+    top: 8px; left: 8px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--screen-glow);
+    box-shadow: 0 0 6px var(--screen-glow);
+  }
+
+  .brand h1{
+    font-family: var(--font-pixel);
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0;
+    letter-spacing: 0.5px;
+  }
+  .brand p{
+    margin: 2px 0 0;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .btn{
+    border: none;
+    border-radius: 8px;
+    padding: 11px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: transform 0.12s ease, background 0.12s ease;
+  }
+  .btn:active{ transform: scale(0.97); }
+
+  .btn-primary{
+    background: var(--shell-bright);
+    color: #171425;
+  }
+  .btn-primary:hover{ background: #ac93e0; }
+
+  .btn-ghost{
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-soft);
+  }
+  .btn-ghost:hover{ border-color: var(--shell-bright); }
+
+  .btn-danger{
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid rgba(209,99,122,0.4);
+  }
+  .btn-danger:hover{ background: rgba(209,99,122,0.12); color: var(--danger-bright); }
+
+  #rom-input, #cover-input{ display: none; }
+
+  /* ---------- Shelf / grid ---------- */
+
+  .shelf-heading{
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .shelf-heading h2{
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin: 0;
+    text-transform: none;
+  }
+  .shelf-count{
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 18px;
+  }
+
+  .cart{
+    background: var(--bg-panel);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-cart);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    clip-path: polygon(0 10px, 30% 10px, 34% 0, 66% 0, 70% 10px, 100% 10px, 100% 100%, 0 100%);
+  }
+
+  .cart-cover{
+    aspect-ratio: 1 / 1;
+    width: 100%;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--bg-panel-raised);
+    border: 1px solid var(--border-soft);
+  }
+  .cart-cover img{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .cart-name{
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .cart-meta{
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .cart-meta.warn{ color: var(--danger-bright); }
+
+  .cart-actions{
+    display: flex;
+    gap: 8px;
+    margin-top: 2px;
+  }
+  .cart-actions .btn{
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 12.5px;
+  }
+  .cart-actions .btn-danger{
+    flex: 0 0 auto;
+    padding: 8px 10px;
+  }
+
+  /* ---------- Empty state ---------- */
+
+  .empty{
+    border: 1px dashed var(--border-soft);
+    border-radius: 12px;
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  .empty strong{ color: var(--text-primary); display: block; margin-bottom: 6px; font-size: 15px; }
+  .empty p{ margin: 0 0 18px; font-size: 13.5px; max-width: 46ch; margin-inline: auto; }
+
+  /* ---------- Modal (add cartridge) ---------- */
+
+  .overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(10,9,14,0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 50;
+  }
+  .overlay[hidden]{ display: none; }
+
+  .modal{
+    background: var(--bg-panel);
+    border: 1px solid var(--border-soft);
+    border-radius: 14px;
+    padding: 24px;
+    width: 100%;
+    max-width: 380px;
+  }
+  .modal h3{
+    font-family: var(--font-pixel);
+    font-size: 12px;
+    margin: 0 0 18px;
+    line-height: 1.6;
+  }
+  .field{ margin-bottom: 16px; }
+  .field label{
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .field input[type="text"]{
+    width: 100%;
+    background: var(--bg-panel-raised);
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text-primary);
+    font-size: 14px;
+  }
+  .cover-pick{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .cover-pick .preview{
+    width: 56px; height: 56px;
+    border-radius: 6px;
+    background: var(--bg-panel-raised);
+    border: 1px solid var(--border-soft);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .cover-pick .preview img{ width: 100%; height: 100%; object-fit: cover; }
+  .modal-actions{
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+  }
+  .modal-actions .btn{ flex: 1; }
+  .modal-note{
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 14px;
+    line-height: 1.5;
+  }
+
+  /* ---------- Player view ---------- */
+
+  .player-view{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+  .player-view[hidden]{ display: none; }
+
+  .console{
+    width: 100%;
+    max-width: 720px;
+    background: linear-gradient(160deg, var(--shell-bright), var(--shell));
+    border-radius: 22px;
+    padding: 18px;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.12), 0 20px 50px rgba(0,0,0,0.35);
+  }
+  .console-label{
+    font-family: var(--font-pixel);
+    font-size: 10px;
+    color: rgba(23,20,37,0.75);
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+  }
+  .screen-frame{
+    background: #0c0b10;
+    border-radius: 10px;
+    padding: 6px;
+    box-shadow: inset 0 0 0 2px rgba(0,0,0,0.4);
+  }
+  #game{
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    background: #000;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .player-bar{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 720px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .player-title{
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .player-hint{
+    font-size: 12.5px;
+    color: var(--text-muted);
+    max-width: 520px;
+    text-align: center;
+    line-height: 1.5;
+    margin: 0;
+  }
+  .player-hint strong{ color: var(--text-primary); }
+
+  /* ---------- Toast ---------- */
+
+  .toast{
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%);
+    background: var(--bg-panel-raised);
+    border: 1px solid var(--border-soft);
+    color: var(--text-primary);
+    padding: 12px 18px;
+    border-radius: 9px;
+    font-size: 13px;
+    max-width: 90vw;
+    z-index: 100;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  }
+  .toast[hidden]{ display: none; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="top">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true"></div>
+      <div>
+        <h1>ESTANTE GBA</h1>
+        <p>Tu colección de cartuchos, en el navegador</p>
+      </div>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-ghost" id="open-netplay">Multijugador <span id="netplay-badge" style="opacity:0.7;"></span></button>
+      <button class="btn btn-primary" id="open-add">Insertar cartucho</button>
+    </div>
+  </header>
+
+  <main id="library-view">
+    <div class="shelf-heading">
+      <h2>Tu estantería</h2>
+      <span class="shelf-count" id="shelf-count"></span>
+    </div>
+    <div id="grid" class="grid" hidden></div>
+    <div id="empty" class="empty" hidden>
+      <strong>La estantería está vacía</strong>
+      <p>Sube un archivo .gba (o .zip con el ROM adentro) para agregar tu primer cartucho. Tú aportas tus propios archivos — esta página no incluye ni busca juegos.</p>
+      <button class="btn btn-primary" id="open-add-empty">Insertar cartucho</button>
+    </div>
+  </main>
+
+  <section class="player-view" id="player-view" hidden>
+    <div class="player-bar">
+      <span class="player-title" id="player-title"></span>
+      <button class="btn btn-ghost" id="exit-player">Volver al estante</button>
+    </div>
+    <div class="console">
+      <div class="console-label">GAME BOY ADVANCE</div>
+      <div class="screen-frame">
+        <div id="game"></div>
+      </div>
+    </div>
+    <p class="player-hint" id="player-hint">Toca o pasa el mouse cerca del borde de la pantalla del juego: ahí aparece la barra de EmulatorJS con el ícono de engranaje ⚙ para <strong>configurar teclas</strong>, guardar partida, pantalla completa y más.</p>
+  </section>
+
+</div>
+
+<div class="overlay" id="netplay-overlay" hidden>
+  <div class="modal">
+    <h3>MULTIJUGADOR (NETPLAY)</h3>
+    <div class="field">
+      <label for="netplay-server">URL de tu servidor de netplay</label>
+      <input type="text" id="netplay-server" placeholder="https://tu-servidor.ejemplo.com:3000">
+    </div>
+    <p class="modal-note">Esto usa el netplay integrado de EmulatorJS. Corre tú mismo el servidor (te explico cómo abajo) y pega aquí su dirección. Con esto configurado, al abrir un juego aparecerá un ícono de netplay en la barra del emulador para crear o unirte a una sala.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="cancel-netplay" type="button">Cancelar</button>
+      <button class="btn btn-primary" id="save-netplay" type="button">Guardar</button>
+    </div>
+    <p class="modal-note" id="netplay-note" style="margin-top:14px;">Deja el campo vacío para desactivar el multijugador.</p>
+  </div>
+</div>
+
+<div class="overlay" id="add-overlay" hidden>
+  <div class="modal">
+    <h3>NUEVO CARTUCHO</h3>
+    <div class="field">
+      <label for="game-name">Nombre del juego</label>
+      <input type="text" id="game-name" maxlength="60" placeholder="Ej. Mi ROM">
+    </div>
+    <div class="field">
+      <label>Portada (opcional)</label>
+      <div class="cover-pick">
+        <div class="preview" id="cover-preview"></div>
+        <button class="btn btn-ghost" id="pick-cover" type="button">Elegir imagen</button>
+      </div>
+      <p class="modal-note" style="margin-top:8px;">Los archivos .gba no traen una carátula incluida. Si no eliges una imagen, se genera una portada automática con las iniciales del juego.</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="cancel-add" type="button">Cancelar</button>
+      <button class="btn btn-primary" id="confirm-add" type="button">Agregar</button>
+    </div>
+    <p class="modal-note" id="add-note"></p>
+  </div>
+</div>
+
+<input type="file" id="rom-input" accept=".gba,.zip">
+<input type="file" id="cover-input" accept="image/*">
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var COVER_SIZE = 300;
+
+  var romBlobs = {};      // id -> Blob, cache en memoria para la sesión actual
+  var pendingRom = null;  // { buffer, size, suggestedName } mientras se llena el modal
+  var pendingCoverDataUrl = null;
+  var reuploadTargetId = null; // cuando el usuario re-sube un ROM grande que no se pudo guardar
+
+  var els = {
+    grid: document.getElementById('grid'),
+    empty: document.getElementById('empty'),
+    shelfCount: document.getElementById('shelf-count'),
+    openAdd: document.getElementById('open-add'),
+    openAddEmpty: document.getElementById('open-add-empty'),
+    addOverlay: document.getElementById('add-overlay'),
+    romInput: document.getElementById('rom-input'),
+    coverInput: document.getElementById('cover-input'),
+    gameName: document.getElementById('game-name'),
+    coverPreview: document.getElementById('cover-preview'),
+    pickCover: document.getElementById('pick-cover'),
+    cancelAdd: document.getElementById('cancel-add'),
+    confirmAdd: document.getElementById('confirm-add'),
+    addNote: document.getElementById('add-note'),
+    playerView: document.getElementById('player-view'),
+    libraryView: document.getElementById('library-view'),
+    playerTitle: document.getElementById('player-title'),
+    exitPlayer: document.getElementById('exit-player'),
+    gameContainer: document.getElementById('game'),
+    toast: document.getElementById('toast'),
+    playerHint: document.getElementById('player-hint'),
+    openNetplay: document.getElementById('open-netplay'),
+    netplayBadge: document.getElementById('netplay-badge'),
+    netplayOverlay: document.getElementById('netplay-overlay'),
+    netplayServerInput: document.getElementById('netplay-server'),
+    cancelNetplay: document.getElementById('cancel-netplay'),
+    saveNetplay: document.getElementById('save-netplay')
+  };
+
+  function showToast(msg, ms){
+    els.toast.textContent = msg;
+    els.toast.hidden = false;
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function(){ els.toast.hidden = true; }, ms || 3200);
+  }
+
+  function uid(){
+    return 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  function fmtSize(bytes){
+    if(bytes > 1024*1024) return (bytes/(1024*1024)).toFixed(1) + ' MB';
+    return Math.max(1, Math.round(bytes/1024)) + ' KB';
+  }
+
+  /* ---------- IndexedDB storage (funciona en cualquier navegador, sin límite de 5MB) ---------- */
+
+  var DB_NAME = 'estante-gba-db';
+  var DB_VERSION = 1;
+  var dbPromise = null;
+
+  function openDB(){
+    if(dbPromise) return dbPromise;
+    dbPromise = new Promise(function(resolve, reject){
+      if(!window.indexedDB){ reject(new Error('IndexedDB no disponible')); return; }
+      var req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = function(e){
+        var db = e.target.result;
+        if(!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
+        if(!db.objectStoreNames.contains('roms')) db.createObjectStore('roms');
+      };
+      req.onsuccess = function(){ resolve(req.result); };
+      req.onerror = function(){ reject(req.error); };
+    });
+    return dbPromise;
+  }
+
+  function idbGet(store, key){
+    return openDB().then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction(store, 'readonly');
+        var req = tx.objectStore(store).get(key);
+        req.onsuccess = function(){ resolve(req.result === undefined ? null : req.result); };
+        req.onerror = function(){ reject(req.error); };
+      });
+    });
+  }
+
+  function idbSet(store, key, value){
+    return openDB().then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction(store, 'readwrite');
+        tx.objectStore(store).put(value, key);
+        tx.oncomplete = function(){ resolve(true); };
+        tx.onerror = function(){ reject(tx.error); };
+        tx.onabort = function(){ reject(tx.error); };
+      });
+    });
+  }
+
+  function idbDelete(store, key){
+    return openDB().then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction(store, 'readwrite');
+        tx.objectStore(store).delete(key);
+        tx.oncomplete = function(){ resolve(true); };
+        tx.onerror = function(){ reject(tx.error); };
+      });
+    });
+  }
+
+  /* ---------- storage helpers ---------- */
+
+  async function loadLibrary(){
+    try{
+      var list = await idbGet('meta', 'library');
+      return list || [];
+    }catch(e){
+      console.error('No se pudo leer la estantería:', e);
+      return [];
+    }
+  }
+
+  async function saveLibrary(list){
+    try{
+      await idbSet('meta', 'library', list);
+    }catch(e){
+      console.error('No se pudo guardar la estantería:', e);
+      showToast('No se pudo guardar la lista de cartuchos en este navegador.');
+    }
+  }
+
+  async function tryStoreRom(id, buffer){
+    try{
+      await idbSet('roms', id, new Blob([buffer], { type: 'application/octet-stream' }));
+      return { ok: true, error: null };
+    }catch(e){
+      console.error('No se pudo guardar el ROM:', e);
+      return { ok: false, error: (e && e.message) ? e.message : String(e) };
+    }
+  }
+
+  async function deleteStoredRom(game){
+    try{ await idbDelete('roms', game.id); }catch(e){}
+  }
+
+  async function fetchStoredRomBlob(game){
+    try{
+      var blob = await idbGet('roms', game.id);
+      return blob || null;
+    }catch(e){
+      console.error('No se pudo leer el ROM guardado:', e);
+      return null;
+    }
+  }
+
+  /* ---------- netplay settings ---------- */
+
+  var NETPLAY_ICE_SERVERS = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun.nextcloud.com:3478' },
+    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
+  ];
+
+  async function getNetplayServer(){
+    try{
+      var url = await idbGet('meta', 'netplayServer');
+      return url || '';
+    }catch(e){ return ''; }
+  }
+
+  async function setNetplayServer(url){
+    try{ await idbSet('meta', 'netplayServer', url); }catch(e){
+      showToast('No se pudo guardar la configuración de multijugador.');
+    }
+  }
+
+  async function refreshNetplayBadge(){
+    var url = await getNetplayServer();
+    els.netplayBadge.textContent = url ? '· activo' : '';
+  }
+
+  function openNetplayModal(){
+    getNetplayServer().then(function(url){
+      els.netplayServerInput.value = url;
+      els.netplayOverlay.hidden = false;
+    });
+  }
+
+  function closeNetplayModal(){
+    els.netplayOverlay.hidden = true;
+  }
+
+  els.openNetplay.addEventListener('click', openNetplayModal);
+  els.cancelNetplay.addEventListener('click', closeNetplayModal);
+  els.saveNetplay.addEventListener('click', async function(){
+    var url = els.netplayServerInput.value.trim().replace(/\/+$/, '');
+    await setNetplayServer(url);
+    await refreshNetplayBadge();
+    closeNetplayModal();
+    showToast(url ? 'Multijugador activado con tu servidor.' : 'Multijugador desactivado.');
+  });
+
+  /* ---------- cover generation ---------- */
+
+  function hueFromName(name){
+    var h = 0;
+    for(var i=0; i<name.length; i++){ h = (h * 31 + name.charCodeAt(i)) | 0; }
+    return Math.abs(h) % 360;
+  }
+
+  async function generatePlaceholderCover(name){
+    var canvas = document.createElement('canvas');
+    canvas.width = COVER_SIZE;
+    canvas.height = COVER_SIZE;
+    var ctx = canvas.getContext('2d');
+    var hue = hueFromName(name || 'GBA');
+
+    var grad = ctx.createLinearGradient(0, 0, COVER_SIZE, COVER_SIZE);
+    grad.addColorStop(0, 'hsl(' + hue + ', 48%, 34%)');
+    grad.addColorStop(1, 'hsl(' + ((hue+40)%360) + ', 55%, 16%)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, COVER_SIZE, COVER_SIZE);
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+    ctx.lineWidth = 10;
+    for(var x=-COVER_SIZE; x<COVER_SIZE*2; x+=34){
+      ctx.beginPath();
+      ctx.moveTo(x, COVER_SIZE);
+      ctx.lineTo(x+COVER_SIZE, 0);
+      ctx.stroke();
+    }
+
+    try{ await document.fonts.load("16px 'Press Start 2P'"); }catch(e){}
+
+    var initials = (name || 'GBA').trim().split(/\s+/).slice(0,2).map(function(w){return w[0];}).join('').toUpperCase() || 'GB';
+    ctx.font = "700 44px 'Press Start 2P', monospace";
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(initials.slice(0,2), COVER_SIZE/2, COVER_SIZE/2 + 4);
+
+    return canvas.toDataURL('image/jpeg', 0.82);
+  }
+
+  function fileToResizedDataUrl(file){
+    return new Promise(function(resolve, reject){
+      var reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = function(){
+        var img = new Image();
+        img.onerror = reject;
+        img.onload = function(){
+          var canvas = document.createElement('canvas');
+          canvas.width = COVER_SIZE;
+          canvas.height = COVER_SIZE;
+          var ctx = canvas.getContext('2d');
+          var side = Math.min(img.width, img.height);
+          var sx = (img.width - side) / 2;
+          var sy = (img.height - side) / 2;
+          ctx.drawImage(img, sx, sy, side, side, 0, 0, COVER_SIZE, COVER_SIZE);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /* ---------- rendering ---------- */
+
+  function stripExt(filename){
+    return filename.replace(/\.(gba|zip)$/i, '');
+  }
+
+  // Lee el título grabado en la cabecera del ROM (offset 0xA0, 12 bytes) y el
+  // código de juego (offset 0xAC, 4 bytes). Solo los archivos .gba planos (no
+  // .zip) tienen esta cabecera accesible directamente.
+  function parseGbaHeader(buffer){
+    if(buffer.byteLength < 0xB0) return null;
+    var bytes = new Uint8Array(buffer, 0xA0, 12);
+    var chars = [];
+    for(var i=0; i<bytes.length; i++){
+      var c = bytes[i];
+      if(c === 0) break;
+      if(c < 0x20 || c > 0x7E) return null; // no parece un encabezado de GBA válido
+      chars.push(String.fromCharCode(c));
+    }
+    var title = chars.join('').trim();
+    if(!title) return null;
+    return title;
+  }
+
+  async function render(){
+    var list = await loadLibrary();
+    els.shelfCount.textContent = list.length ? (list.length + (list.length === 1 ? ' cartucho' : ' cartuchos')) : '';
+
+    if(!list.length){
+      els.grid.hidden = true;
+      els.empty.hidden = false;
+      return;
+    }
+    els.empty.hidden = true;
+    els.grid.hidden = false;
+    els.grid.innerHTML = '';
+
+    list.slice().reverse().forEach(function(game){
+      var card = document.createElement('div');
+      card.className = 'cart';
+
+      var cover = document.createElement('div');
+      cover.className = 'cart-cover';
+      var img = document.createElement('img');
+      img.src = game.cover;
+      img.alt = '';
+      cover.appendChild(img);
+
+      var name = document.createElement('div');
+      name.className = 'cart-name';
+      name.textContent = game.name;
+
+      var meta = document.createElement('div');
+      meta.className = 'cart-meta' + (game.stored ? '' : ' warn');
+      meta.textContent = game.stored
+        ? fmtSize(game.size)
+        : fmtSize(game.size) + ' · sin guardar, requiere resubir';
+
+      var actions = document.createElement('div');
+      actions.className = 'cart-actions';
+
+      var playBtn = document.createElement('button');
+      playBtn.className = 'btn btn-primary';
+      playBtn.textContent = 'Jugar';
+      playBtn.addEventListener('click', function(){ playGame(game); });
+
+      var delBtn = document.createElement('button');
+      delBtn.className = 'btn btn-danger';
+      delBtn.textContent = '✕';
+      delBtn.setAttribute('aria-label', 'Eliminar ' + game.name);
+      delBtn.addEventListener('click', function(){ removeGame(game.id); });
+
+      actions.appendChild(playBtn);
+      actions.appendChild(delBtn);
+
+      card.appendChild(cover);
+      card.appendChild(name);
+      card.appendChild(meta);
+      card.appendChild(actions);
+      els.grid.appendChild(card);
+    });
+  }
+
+  async function removeGame(id){
+    var list = await loadLibrary();
+    var game = list.find(function(g){ return g.id === id; });
+    if(!confirm('¿Eliminar "' + (game ? game.name : 'este cartucho') + '" de la estantería?')) return;
+    list = list.filter(function(g){ return g.id !== id; });
+    await saveLibrary(list);
+    if(game) await deleteStoredRom(game);
+    delete romBlobs[id];
+    render();
+  }
+
+  /* ---------- add flow ---------- */
+
+  function openAddModal(){
+    pendingRom = null;
+    pendingCoverDataUrl = null;
+    els.gameName.value = '';
+    els.coverPreview.innerHTML = '';
+    els.addNote.textContent = 'Elige un archivo .gba desde tu computadora.';
+    els.romInput.value = '';
+    els.coverInput.value = '';
+    els.addOverlay.hidden = false;
+    els.romInput.click();
+  }
+
+  function closeAddModal(){
+    els.addOverlay.hidden = true;
+  }
+
+  els.openAdd.addEventListener('click', openAddModal);
+  els.openAddEmpty.addEventListener('click', openAddModal);
+  els.cancelAdd.addEventListener('click', closeAddModal);
+
+  function handleAddFileSelected(file){
+    if(!file) { els.addOverlay.hidden = true; return; }
+    var reader = new FileReader();
+    reader.onload = function(){
+      var headerTitle = parseGbaHeader(reader.result);
+      pendingRom = {
+        buffer: reader.result,
+        size: reader.result.byteLength,
+        suggestedName: headerTitle || stripExt(file.name)
+      };
+      els.gameName.value = pendingRom.suggestedName;
+      els.addNote.textContent = 'Este archivo (' + fmtSize(pendingRom.size) + ') se guardará en tu navegador para la próxima vez.';
+    };
+    reader.onerror = function(){ showToast('No se pudo leer ese archivo.'); };
+    reader.readAsArrayBuffer(file);
+  }
+
+  els.pickCover.addEventListener('click', function(){ els.coverInput.click(); });
+
+  els.coverInput.addEventListener('change', async function(){
+    var file = els.coverInput.files[0];
+    if(!file) return;
+    var dataUrl = await fileToResizedDataUrl(file);
+    pendingCoverDataUrl = dataUrl;
+    els.coverPreview.innerHTML = '<img src="' + dataUrl + '" alt="">';
+  });
+
+  els.confirmAdd.addEventListener('click', async function(){
+    if(!pendingRom){ showToast('Primero elige un archivo .gba.'); return; }
+    var name = els.gameName.value.trim() || pendingRom.suggestedName || 'Juego sin nombre';
+
+    els.confirmAdd.disabled = true;
+    els.confirmAdd.textContent = 'Agregando…';
+
+    var id = uid();
+    var cover = pendingCoverDataUrl || await generatePlaceholderCover(name);
+    romBlobs[id] = new Blob([pendingRom.buffer], { type: 'application/octet-stream' });
+
+    var storeResult = await tryStoreRom(id, pendingRom.buffer);
+    var stored = storeResult.ok;
+
+    var list = await loadLibrary();
+    list.push({
+      id: id,
+      name: name,
+      cover: cover,
+      size: pendingRom.size,
+      stored: stored,
+      addedAt: Date.now()
+    });
+    await saveLibrary(list);
+
+    els.confirmAdd.disabled = false;
+    els.confirmAdd.textContent = 'Agregar';
+    closeAddModal();
+    render();
+
+    if(!stored){
+      showToast('No se pudo guardar el ROM de forma permanente' + (storeResult.error ? (' (' + storeResult.error + ')') : '') + '; quedará solo por esta sesión.', 5500);
+    }
+  });
+
+  /* ---------- single dispatcher for the shared file input ---------- */
+
+  els.romInput.addEventListener('change', async function(){
+    var file = els.romInput.files[0];
+    if(reuploadTargetId){
+      var id = reuploadTargetId;
+      reuploadTargetId = null;
+      if(!file) return;
+      try{
+        var buffer = await file.arrayBuffer();
+        romBlobs[id] = new Blob([buffer], { type: 'application/octet-stream' });
+        var list = await loadLibrary();
+        var game = list.find(function(g){ return g.id === id; });
+        if(game) startEmulator(game);
+      }catch(e){
+        showToast('No se pudo leer ese archivo.');
+      }
+      return;
+    }
+    handleAddFileSelected(file);
+  });
+
+  /* ---------- player ---------- */
+
+  async function playGame(game){
+    var blob = romBlobs[game.id];
+    if(!blob && game.stored){
+      blob = await fetchStoredRomBlob(game);
+      if(blob) romBlobs[game.id] = blob;
+    }
+    if(!blob){
+      reuploadTargetId = game.id;
+      showToast('Este cartucho no quedó guardado en el navegador: selecciona el mismo archivo .gba para jugarlo.');
+      els.romInput.value = '';
+      els.romInput.click();
+      return;
+    }
+    startEmulator(game);
+  }
+
+  async function startEmulator(game){
+    els.libraryView.hidden = true;
+    els.playerView.hidden = false;
+    els.playerTitle.textContent = game.name;
+
+    els.gameContainer.innerHTML = '';
+
+    var oldLoader = document.querySelector('script[data-ejs-loader]');
+    if(oldLoader) oldLoader.remove();
+
+    ['EJS_player','EJS_core','EJS_pathtodata','EJS_gameUrl','EJS_gameName',
+     'EJS_startOnLoaded','EJS_color','EJS_backgroundColor','EJS_emulator',
+     'EJS_biosUrl','EJS_alignStartButton','EJS_gameID','EJS_netplayServer',
+     'EJS_netplayICEServers'].forEach(function(k){ try{ delete window[k]; }catch(e){ window[k] = undefined; } });
+
+    var objectUrl = URL.createObjectURL(blob_for(game));
+    var netplayServer = await getNetplayServer();
+
+    window.EJS_player = '#game';
+    window.EJS_core = 'gba';
+    window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
+    window.EJS_gameUrl = objectUrl;
+    window.EJS_gameName = game.name;
+    window.EJS_startOnLoaded = true;
+    window.EJS_color = '#9b7fd6';
+    window.EJS_backgroundColor = '#0c0b10';
+    window.EJS_alignStartButton = 'center';
+
+    if(netplayServer){
+      // El id del juego debe ser el mismo para todos los jugadores de una
+      // partida, así que se basa en el nombre (no en el id local aleatorio).
+      window.EJS_gameID = game.name;
+      window.EJS_netplayServer = netplayServer;
+      window.EJS_netplayICEServers = NETPLAY_ICE_SERVERS;
+      els.playerHint.innerHTML = 'Multijugador activo: en la barra de EmulatorJS busca el ícono de <strong>red/personas</strong> para crear o unirte a una sala. Todos deben tener el mismo juego y usar tu mismo servidor de netplay.';
+    } else {
+      els.playerHint.innerHTML = 'Toca o pasa el mouse cerca del borde de la pantalla del juego: ahí aparece la barra de EmulatorJS con el ícono de engranaje ⚙ para <strong>configurar teclas</strong>, guardar partida, pantalla completa y más.';
+    }
+
+    var script = document.createElement('script');
+    script.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
+    script.setAttribute('data-ejs-loader', 'true');
+    document.body.appendChild(script);
+  }
+
+  function blob_for(game){ return romBlobs[game.id]; }
+
+  els.exitPlayer.addEventListener('click', function(){
+    if(confirm('¿Volver al estante? Se recargará la página para dejar todo limpio.')){
+      location.reload();
+    }
+  });
+
+  render();
+  refreshNetplayBadge();
+})();
+</script>
+
+</body>
+</html>
