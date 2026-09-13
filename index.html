@@ -1050,9 +1050,19 @@
     // Guarda automáticamente el progreso en la base de datos de la app
     // cada vez que se usa "Guardar Estado" dentro del emulador.
     window.EJS_onSaveState = function(e){
+      showToast('Progreso capturado, guardando…', 2000);
       try{
         var stateBuffer = e && e[1] ? e[1] : null;
-        if(stateBuffer) saveGameState(game.id, stateBuffer);
+        if(stateBuffer){
+          saveGameState(game.id, stateBuffer).then(function(){
+            showToast('Progreso guardado ✅', 2000);
+          }).catch(function(err){
+            showToast('Error al guardar el progreso ❌', 2500);
+            console.error('No se pudo guardar el progreso:', err);
+          });
+        } else {
+          showToast('No se recibió el progreso del emulador ❌', 2500);
+        }
       }catch(err){ console.error('No se pudo capturar el progreso:', err); }
     };
 
