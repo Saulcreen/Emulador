@@ -1051,12 +1051,6 @@
     // cada vez que se usa "Guardar Estado" dentro del emulador.
     window.EJS_onSaveState = function(e){
       try{
-        var keys = (e && typeof e === 'object') ? Object.keys(e).join(',') : 'n/a';
-        showToast('claves: ' + keys, 7000);
-        console.log('EJS_onSaveState recibió:', e);
-      }catch(err){ console.error('Error al inspeccionar el estado:', err); }
-
-      try{
         var stateBuffer = null;
         if(e && typeof e === 'object'){
           stateBuffer = e.state || e.save || e.data || e.buffer || null;
