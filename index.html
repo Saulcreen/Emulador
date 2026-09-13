@@ -1051,17 +1051,16 @@
     // cada vez que se usa "Guardar Estado" dentro del emulador.
     window.EJS_onSaveState = function(e){
       try{
-        var info = 'tipo:' + (e === null ? 'null' : typeof e) +
-          ' esArray:' + Array.isArray(e) +
-          ' largo:' + (e && e.length !== undefined ? e.length : 'n/a') +
-          ' e0:' + (e && e[0] ? (e[0].constructor ? e[0].constructor.name : typeof e[0]) : 'vacío') +
-          ' e1:' + (e && e[1] ? (e[1].constructor ? e[1].constructor.name : typeof e[1]) : 'vacío');
-        showToast(info, 6000);
+        var keys = (e && typeof e === 'object') ? Object.keys(e).join(',') : 'n/a';
+        showToast('claves: ' + keys, 7000);
         console.log('EJS_onSaveState recibió:', e);
       }catch(err){ console.error('Error al inspeccionar el estado:', err); }
 
       try{
-        var stateBuffer = e && e[1] ? e[1] : (e && e[0] ? e[0] : null);
+        var stateBuffer = null;
+        if(e && typeof e === 'object'){
+          stateBuffer = e.state || e.save || e.data || e.buffer || null;
+        }
         if(stateBuffer){
           saveGameState(game.id, stateBuffer).then(function(){
             showToast('Progreso guardado ✅', 2000);
