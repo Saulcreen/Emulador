@@ -653,7 +653,17 @@
 
   function initPeer(onOpenCb){
     if(peer && !peer.destroyed) { if(onOpenCb) onOpenCb(peer.id); return; }
-    peer = new Peer();
+    
+    // Se agregan servidores STUN públicos para mantener la conexión estable en cualquier red
+    peer = new Peer({
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      }
+    });
+
     peer.on('open', function(id){
       if(onOpenCb) onOpenCb(id);
     });
@@ -664,8 +674,14 @@
   }
 
   function openNetplayModal(){
-    document.getElementById('netplay-menu-view').style.display = 'block';
-    document.getElementById('netplay-room-view').style.display = 'none';
+    if (conn && conn.open) {
+      document.getElementById('netplay-menu-view').style.display = 'none';
+      document.getElementById('netplay-room-view').style.display = 'block';
+      document.getElementById('netplay-status-text').textContent = '¡Conectado a la sala!';
+    } else {
+      document.getElementById('netplay-menu-view').style.display = 'block';
+      document.getElementById('netplay-room-view').style.display = 'none';
+    }
     els.netplayOverlay.hidden = false;
   }
 
@@ -674,11 +690,10 @@
   }
 
   els.openNetplay.addEventListener('click', openNetplayModal);
+  
+  // Al hacer clic en cerrar, SOLO ocultamos el modal sin destruir la conexión actual
   els.cancelNetplay.addEventListener('click', function(){
     closeNetplayModal();
-    if(conn) { conn.close(); conn = null; }
-    if(peer) { peer.destroy(); peer = null; }
-    refreshNetplayBadge();
   });
 
   // Botón Crear Sala
@@ -689,6 +704,7 @@
       document.getElementById('netplay-display-code').textContent = id;
       document.getElementById('netplay-status-text').textContent = 'Sala lista. Esperando a que tu amigo se una...';
       
+      peer.off('connection');
       peer.on('connection', function(connection){
         conn = connection;
         setupConnectionEvents();
@@ -715,6 +731,8 @@
   });
 
   function setupConnectionEvents(){
+    if(!conn) return;
+
     conn.on('open', function(){
       document.getElementById('netplay-status-text').textContent = '¡Conectado a la sala! Abre el juego.';
       showToast('Conexión establecida con el anfitrión.');
