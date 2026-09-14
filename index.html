@@ -511,11 +511,11 @@
 
   var COVER_SIZE = 300;
 
-  var romBlobs = {};      // id -> Blob, cache en memoria para la sesión actual
-  var pendingRom = null;  // { buffer, size, suggestedName } mientras se llena el modal
+  var romBlobs = {};      
+  var pendingRom = null;  
   var pendingCoverDataUrl = null;
-  var reuploadTargetId = null; // cuando el usuario re-sube un ROM grande que no se pudo guardar
-  var emulatorRunning = false; // evita cerrar/recargar de golpe mientras el juego está guardando
+  var reuploadTargetId = null; 
+  var emulatorRunning = false; 
 
   var els = {
     grid: document.getElementById('grid'),
@@ -653,7 +653,17 @@
 
   function initPeer(onOpenCb){
     if(peer && !peer.destroyed) { if(onOpenCb) onOpenCb(peer.id); return; }
-    peer = new Peer();
+    
+    // Configuramos PeerJS con servidores STUN para asegurar la estabilidad de la conexión P2P
+    peer = new Peer({
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      }
+    });
+
     peer.on('open', function(id){
       if(onOpenCb) onOpenCb(id);
     });
@@ -664,8 +674,14 @@
   }
 
   function openNetplayModal(){
-    document.getElementById('netplay-menu-view').style.display = 'block';
-    document.getElementById('netplay-room-view').style.display = 'none';
+    if (conn && conn.open) {
+      document.getElementById('netplay-menu-view').style.display = 'none';
+      document.getElementById('netplay-room-view').style.display = 'block';
+      document.getElementById('netplay-status-text').textContent = '¡Conectado a la sala!';
+    } else {
+      document.getElementById('netplay-menu-view').style.display = 'block';
+      document.getElementById('netplay-room-view').style.display = 'none';
+    }
     els.netplayOverlay.hidden = false;
   }
 
@@ -674,11 +690,10 @@
   }
 
   els.openNetplay.addEventListener('click', openNetplayModal);
+  
+  // Al hacer clic en cerrar, ÚNICAMENTE ocultamos el modal. No tocamos 'conn' ni 'peer'.
   els.cancelNetplay.addEventListener('click', function(){
     closeNetplayModal();
-    if(conn) { conn.close(); conn = null; }
-    if(peer) { peer.destroy(); peer = null; }
-    refreshNetplayBadge();
   });
 
   // Botón Crear Sala
@@ -689,6 +704,8 @@
       document.getElementById('netplay-display-code').textContent = id;
       document.getElementById('netplay-status-text').textContent = 'Sala lista. Esperando a que tu amigo se una...';
       
+      // Evitamos duplicar listeners si ya existía una conexión previa
+      peer.off('connection');
       peer.on('connection', function(connection){
         conn = connection;
         setupConnectionEvents();
@@ -715,9 +732,11 @@
   });
 
   function setupConnectionEvents(){
+    if (!conn) return;
+    
     conn.on('open', function(){
       document.getElementById('netplay-status-text').textContent = '¡Conectado a la sala! Abre el juego.';
-      showToast('Conexión establecida con el anfitrión.');
+      showToast('Conexión establecida.');
       refreshNetplayBadge();
     });
     
@@ -728,6 +747,10 @@
     conn.on('close', function(){
       showToast('La conexión multijugador se ha cerrado.');
       refreshNetplayBadge();
+    });
+    
+    conn.on('error', function(err){
+      console.error('Error en DataConnection:', err);
     });
   }
 
@@ -1042,7 +1065,7 @@
 
     var savedState = await loadGameState(game.id);
     if(savedState){
-      var stateBlob = new Blob([savedState], { type: 'application/octet-stream' });
+      var stateBlob = new Blob([savedState], { type: 'application/octet-stream'}}, { type: 'application/octet-stream' });
       window.EJS_loadStateURL = URL.createObjectURL(stateBlob);
     }
 
