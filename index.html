@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Librería PeerJS para multijugador P2P -->
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
   :root{
     --bg-deep: #14121a;
@@ -447,19 +449,31 @@
 
 </div>
 
+<!-- Modal Multijugador (P2P con PeerJS) -->
 <div class="overlay" id="netplay-overlay" hidden>
   <div class="modal">
-    <h3>MULTIJUGADOR (NETPLAY)</h3>
-    <div class="field">
-      <label for="netplay-server">URL de tu servidor de netplay</label>
-      <input type="text" id="netplay-server" placeholder="https://tu-servidor.ejemplo.com:3000">
+    <h3>SALA MULTIJUGADOR (NETPLAY)</h3>
+    
+    <div id="netplay-menu-view">
+      <p class="modal-note" style="margin-top:0; margin-bottom:16px;">Juega con un amigo en tiempo real. Ambos deben tener cargado el <strong>mismo juego</strong> en su estante.</p>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <button class="btn btn-primary" id="netplay-btn-create" type="button">Crear Sala</button>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="netplay-room-code-input" placeholder="Código de sala" style="flex:1;">
+          <button class="btn btn-ghost" id="netplay-btn-join" type="button">Unirse</button>
+        </div>
+      </div>
     </div>
-    <p class="modal-note">Esto usa el netplay integrado de EmulatorJS. Corre tú mismo el servidor (te explico cómo abajo) y pega aquí su dirección. Con esto configurado, al abrir un juego aparecerá un ícono de netplay en la barra del emulador para crear o unirte a una sala.</p>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" id="cancel-netplay" type="button">Cancelar</button>
-      <button class="btn btn-primary" id="save-netplay" type="button">Guardar</button>
+
+    <div id="netplay-room-view" style="display:none; text-align:center;">
+      <p class="modal-note">Código de tu sala (compártelo con tu amigo):</p>
+      <div id="netplay-display-code" style="font-family:var(--font-pixel); font-size:12px; background:var(--bg-panel-raised); padding:12px; border-radius:8px; margin:10px 0; color:var(--screen-glow); word-break: break-all;">---</div>
+      <p id="netplay-status-text" class="modal-note">Esperando conexión...</p>
     </div>
-    <p class="modal-note" id="netplay-note" style="margin-top:14px;">Deja el campo vacío para desactivar el multijugador.</p>
+
+    <div class="modal-actions" style="margin-top:20px;">
+      <button class="btn btn-ghost" id="cancel-netplay" type="button">Cerrar</button>
+    </div>
   </div>
 </div>
 
@@ -528,9 +542,7 @@
     openNetplay: document.getElementById('open-netplay'),
     netplayBadge: document.getElementById('netplay-badge'),
     netplayOverlay: document.getElementById('netplay-overlay'),
-    netplayServerInput: document.getElementById('netplay-server'),
-    cancelNetplay: document.getElementById('cancel-netplay'),
-    saveNetplay: document.getElementById('save-netplay')
+    cancelNetplay: document.getElementById('cancel-netplay')
   };
 
   function showToast(msg, ms){
@@ -549,7 +561,7 @@
     return Math.max(1, Math.round(bytes/1024)) + ' KB';
   }
 
-  /* ---------- IndexedDB storage (funciona en cualquier navegador, sin límite de 5MB) ---------- */
+  /* ---------- IndexedDB storage ---------- */
 
   var DB_NAME = 'estante-gba-db';
   var DB_VERSION = 2;
@@ -606,25 +618,15 @@
     });
   }
 
-  /* ---------- storage helpers ---------- */
-
   async function loadLibrary(){
     try{
       var list = await idbGet('meta', 'library');
       return list || [];
-    }catch(e){
-      console.error('No se pudo leer la estantería:', e);
-      return [];
-    }
+    }catch(e){ return []; }
   }
 
   async function saveLibrary(list){
-    try{
-      await idbSet('meta', 'library', list);
-    }catch(e){
-      console.error('No se pudo guardar la estantería:', e);
-      showToast('No se pudo guardar la lista de cartuchos en este navegador.');
-    }
+    try{ await idbSet('meta', 'library', list); }catch(e){}
   }
 
   async function tryStoreRom(id, buffer){
@@ -632,8 +634,7 @@
       await idbSet('roms', id, new Blob([buffer], { type: 'application/octet-stream' }));
       return { ok: true, error: null };
     }catch(e){
-      console.error('No se pudo guardar el ROM:', e);
-      return { ok: false, error: (e && e.message) ? e.message : String(e) };
+      return { ok: false, error: e.message };
     }
   }
 
@@ -642,75 +643,30 @@
   }
 
   async function fetchStoredRomBlob(game){
-    try{
-      var blob = await idbGet('roms', game.id);
-      return blob || null;
-    }catch(e){
-      console.error('No se pudo leer el ROM guardado:', e);
-      return null;
-    }
+    try{ return await idbGet('roms', game.id) || null; }catch(e){ return null; }
   }
 
-  /* ---------- netplay settings ---------- */
+  /* ---------- Netplay P2P (PeerJS) ---------- */
 
-  function numericGameId(name){
-    // EmulatorJS exige que EJS_gameID sea un número, y debe ser el mismo
-    // para todos los jugadores de una sala de netplay, así que se calcula
-    // de forma determinista a partir del nombre del juego.
-    var h = 0;
-    var str = String(name || 'GBA');
-    for(var i=0; i<str.length; i++){ h = (h * 31 + str.charCodeAt(i)) | 0; }
-    return Math.abs(h) || 1;
-  }
+  var peer = null;
+  var conn = null;
 
-  async function saveGameState(gameId, stateBuffer){
-    try{
-      await idbSet('states', gameId, stateBuffer);
-    }catch(e){
-      console.error('No se pudo guardar el progreso:', e);
-    }
-  }
-
-  async function loadGameState(gameId){
-    try{
-      return await idbGet('states', gameId);
-    }catch(e){
-      return null;
-    }
-  }
-
-  var NETPLAY_ICE_SERVERS = [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'stun:stun.nextcloud.com:3478' },
-    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
-  ];
-
-  async function getNetplayServer(){
-    try{
-      var url = await idbGet('meta', 'netplayServer');
-      return url || '';
-    }catch(e){ return ''; }
-  }
-
-  async function setNetplayServer(url){
-    try{ await idbSet('meta', 'netplayServer', url); }catch(e){
-      showToast('No se pudo guardar la configuración de multijugador.');
-    }
-  }
-
-  async function refreshNetplayBadge(){
-    var url = await getNetplayServer();
-    els.netplayBadge.textContent = url ? '· activo' : '';
+  function initPeer(onOpenCb){
+    if(peer && !peer.destroyed) { if(onOpenCb) onOpenCb(peer.id); return; }
+    peer = new Peer();
+    peer.on('open', function(id){
+      if(onOpenCb) onOpenCb(id);
+    });
+    peer.on('error', function(err){
+      console.error('Error de PeerJS:', err);
+      showToast('Error en la conexión multijugador.');
+    });
   }
 
   function openNetplayModal(){
-    getNetplayServer().then(function(url){
-      els.netplayServerInput.value = url;
-      els.netplayOverlay.hidden = false;
-    });
+    document.getElementById('netplay-menu-view').style.display = 'block';
+    document.getElementById('netplay-room-view').style.display = 'none';
+    els.netplayOverlay.hidden = false;
   }
 
   function closeNetplayModal(){
@@ -718,14 +674,76 @@
   }
 
   els.openNetplay.addEventListener('click', openNetplayModal);
-  els.cancelNetplay.addEventListener('click', closeNetplayModal);
-  els.saveNetplay.addEventListener('click', async function(){
-    var url = els.netplayServerInput.value.trim().replace(/\/+$/, '');
-    await setNetplayServer(url);
-    await refreshNetplayBadge();
+  els.cancelNetplay.addEventListener('click', function(){
     closeNetplayModal();
-    showToast(url ? 'Multijugador activado con tu servidor.' : 'Multijugador desactivado.');
+    if(conn) { conn.close(); conn = null; }
+    if(peer) { peer.destroy(); peer = null; }
+    refreshNetplayBadge();
   });
+
+  // Botón Crear Sala
+  document.getElementById('netplay-btn-create').addEventListener('click', function(){
+    initPeer(function(id){
+      document.getElementById('netplay-menu-view').style.display = 'none';
+      document.getElementById('netplay-room-view').style.display = 'block';
+      document.getElementById('netplay-display-code').textContent = id;
+      document.getElementById('netplay-status-text').textContent = 'Sala lista. Esperando a que tu amigo se una...';
+      
+      peer.on('connection', function(connection){
+        conn = connection;
+        setupConnectionEvents();
+        document.getElementById('netplay-status-text').textContent = '¡Amigo conectado! Ya puedes abrir el juego.';
+        showToast('¡Jugador conectado con éxito!');
+      });
+    });
+  });
+
+  // Botón Unirse a Sala
+  document.getElementById('netplay-btn-join').addEventListener('click', function(){
+    var code = document.getElementById('netplay-room-code-input').value.trim();
+    if(!code){ showToast('Ingresa un código de sala válido.'); return; }
+    
+    initPeer(function(){
+      conn = peer.connect(code);
+      setupConnectionEvents();
+      
+      document.getElementById('netplay-menu-view').style.display = 'none';
+      document.getElementById('netplay-room-view').style.display = 'block';
+      document.getElementById('netplay-display-code').textContent = code;
+      document.getElementById('netplay-status-text').textContent = 'Conectando a la sala...';
+    });
+  });
+
+  function setupConnectionEvents(){
+    conn.on('open', function(){
+      document.getElementById('netplay-status-text').textContent = '¡Conectado a la sala! Abre el juego.';
+      showToast('Conexión establecida con el anfitrión.');
+      refreshNetplayBadge();
+    });
+    
+    conn.on('data', function(data){
+      console.log('Datos recibidos:', data);
+    });
+
+    conn.on('close', function(){
+      showToast('La conexión multijugador se ha cerrado.');
+      refreshNetplayBadge();
+    });
+  }
+
+  function refreshNetplayBadge(){
+    els.netplayBadge.textContent = (conn && conn.open) ? '· conectado' : '';
+  }
+
+  /* ---------- game states storage ---------- */
+
+  async function saveGameState(gameId, stateBuffer){
+    try{ await idbSet('states', gameId, stateBuffer); }catch(e){}
+  }
+
+  async function loadGameState(gameId){
+    try{ return await idbGet('states', gameId); }catch(e){ return null; }
+  }
 
   /* ---------- cover generation ---------- */
 
@@ -747,15 +765,6 @@
     grad.addColorStop(1, 'hsl(' + ((hue+40)%360) + ', 55%, 16%)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, COVER_SIZE, COVER_SIZE);
-
-    ctx.strokeStyle = 'rgba(255,255,255,0.10)';
-    ctx.lineWidth = 10;
-    for(var x=-COVER_SIZE; x<COVER_SIZE*2; x+=34){
-      ctx.beginPath();
-      ctx.moveTo(x, COVER_SIZE);
-      ctx.lineTo(x+COVER_SIZE, 0);
-      ctx.stroke();
-    }
 
     try{ await document.fonts.load("16px 'Press Start 2P'"); }catch(e){}
 
@@ -799,9 +808,6 @@
     return filename.replace(/\.(gba|zip)$/i, '');
   }
 
-  // Lee el título grabado en la cabecera del ROM (offset 0xA0, 12 bytes) y el
-  // código de juego (offset 0xAC, 4 bytes). Solo los archivos .gba planos (no
-  // .zip) tienen esta cabecera accesible directamente.
   function parseGbaHeader(buffer){
     if(buffer.byteLength < 0xB0) return null;
     var bytes = new Uint8Array(buffer, 0xA0, 12);
@@ -809,12 +815,11 @@
     for(var i=0; i<bytes.length; i++){
       var c = bytes[i];
       if(c === 0) break;
-      if(c < 0x20 || c > 0x7E) return null; // no parece un encabezado de GBA válido
+      if(c < 0x20 || c > 0x7E) return null;
       chars.push(String.fromCharCode(c));
     }
     var title = chars.join('').trim();
-    if(!title) return null;
-    return title;
+    return title || null;
   }
 
   async function render(){
@@ -847,9 +852,7 @@
 
       var meta = document.createElement('div');
       meta.className = 'cart-meta' + (game.stored ? '' : ' warn');
-      meta.textContent = game.stored
-        ? fmtSize(game.size)
-        : fmtSize(game.size) + ' · sin guardar, requiere resubir';
+      meta.textContent = game.stored ? fmtSize(game.size) : fmtSize(game.size) + ' · sin guardar';
 
       var actions = document.createElement('div');
       actions.className = 'cart-actions';
@@ -862,7 +865,6 @@
       var delBtn = document.createElement('button');
       delBtn.className = 'btn btn-danger';
       delBtn.textContent = '✕';
-      delBtn.setAttribute('aria-label', 'Eliminar ' + game.name);
       delBtn.addEventListener('click', function(){ removeGame(game.id); });
 
       actions.appendChild(playBtn);
@@ -920,9 +922,8 @@
         suggestedName: headerTitle || stripExt(file.name)
       };
       els.gameName.value = pendingRom.suggestedName;
-      els.addNote.textContent = 'Este archivo (' + fmtSize(pendingRom.size) + ') se guardará en tu navegador para la próxima vez.';
+      els.addNote.textContent = 'Este archivo (' + fmtSize(pendingRom.size) + ') se guardará en tu navegador.';
     };
-    reader.onerror = function(){ showToast('No se pudo leer ese archivo.'); };
     reader.readAsArrayBuffer(file);
   }
 
@@ -965,13 +966,7 @@
     els.confirmAdd.textContent = 'Agregar';
     closeAddModal();
     render();
-
-    if(!stored){
-      showToast('No se pudo guardar el ROM de forma permanente' + (storeResult.error ? (' (' + storeResult.error + ')') : '') + '; quedará solo por esta sesión.', 5500);
-    }
   });
-
-  /* ---------- single dispatcher for the shared file input ---------- */
 
   els.romInput.addEventListener('change', async function(){
     var file = els.romInput.files[0];
@@ -985,9 +980,7 @@
         var list = await loadLibrary();
         var game = list.find(function(g){ return g.id === id; });
         if(game) startEmulator(game);
-      }catch(e){
-        showToast('No se pudo leer ese archivo.');
-      }
+      }catch(e){ showToast('No se pudo leer ese archivo.'); }
       return;
     }
     handleAddFileSelected(file);
@@ -1003,7 +996,7 @@
     }
     if(!blob){
       reuploadTargetId = game.id;
-      showToast('Este cartucho no quedó guardado en el navegador: selecciona el mismo archivo .gba para jugarlo.');
+      showToast('Selecciona el archivo .gba correspondiente para jugar.');
       els.romInput.value = '';
       els.romInput.click();
       return;
@@ -1015,7 +1008,6 @@
     els.libraryView.hidden = true;
     els.playerView.hidden = false;
     els.playerTitle.textContent = game.name;
-
     els.gameContainer.innerHTML = '';
 
     var oldLoader = document.querySelector('script[data-ejs-loader]');
@@ -1023,12 +1015,10 @@
 
     ['EJS_player','EJS_core','EJS_pathtodata','EJS_gameUrl','EJS_gameName',
      'EJS_startOnLoaded','EJS_color','EJS_backgroundColor','EJS_emulator',
-     'EJS_biosUrl','EJS_alignStartButton','EJS_gameID','EJS_netplayServer',
-     'EJS_netplayICEServers','EJS_defaultOptions','EJS_loadStateURL',
-     'EJS_onSaveState'].forEach(function(k){ try{ delete window[k]; }catch(e){ window[k] = undefined; } });
+     'EJS_biosUrl','EJS_alignStartButton','EJS_gameID','EJS_defaultOptions',
+     'EJS_loadStateURL','EJS_onSaveState'].forEach(function(k){ try{ delete window[k]; }catch(e){ window[k] = undefined; } });
 
-    var objectUrl = URL.createObjectURL(blob_for(game));
-    var netplayServer = await getNetplayServer();
+    var objectUrl = URL.createObjectURL(romBlobs[game.id]);
 
     window.EJS_player = '#game';
     window.EJS_core = 'gba';
@@ -1039,46 +1029,21 @@
     window.EJS_color = '#9b7fd6';
     window.EJS_backgroundColor = '#0c0b10';
     window.EJS_alignStartButton = 'center';
-    window.EJS_defaultOptions = {
-      'save-state-location': 'browser'
-    };
+    window.EJS_defaultOptions = { 'save-state-location': 'browser' };
 
-    // Id numérico consistente para este juego (requerido por EmulatorJS,
-    // incluso fuera de netplay, para no mezclar progresos entre juegos).
-    window.EJS_gameID = numericGameId(game.name);
-
-    // Guarda automáticamente el progreso en la base de datos de la app
-    // cada vez que se usa "Guardar Estado" dentro del emulador.
     window.EJS_onSaveState = function(e){
       try{
-        var stateBuffer = null;
-        if(e && typeof e === 'object'){
-          stateBuffer = e.state || e.save || e.data || e.buffer || null;
-        }
+        var stateBuffer = (e && typeof e === 'object') ? (e.state || e.save || e.data || e.buffer || null) : null;
         if(stateBuffer){
-          saveGameState(game.id, stateBuffer).then(function(){
-            showToast('Progreso guardado ✅', 2000);
-          }).catch(function(err){
-            showToast('Error al guardar el progreso ❌', 2500);
-            console.error('No se pudo guardar el progreso:', err);
-          });
+          saveGameState(game.id, stateBuffer).then(function(){ showToast('Progreso guardado ✅', 2000); });
         }
-      }catch(err){ console.error('No se pudo capturar el progreso:', err); }
+      }catch(err){}
     };
 
-    // Si ya hay un progreso guardado para este juego, se carga solo al abrir.
     var savedState = await loadGameState(game.id);
     if(savedState){
       var stateBlob = new Blob([savedState], { type: 'application/octet-stream' });
       window.EJS_loadStateURL = URL.createObjectURL(stateBlob);
-    }
-
-    if(netplayServer){
-      window.EJS_netplayServer = netplayServer;
-      window.EJS_netplayICEServers = NETPLAY_ICE_SERVERS;
-      els.playerHint.innerHTML = 'Multijugador activo: busca el ícono de <strong>red/personas</strong> en la barra de EmulatorJS. Uno debe hacer clic en "Create a Room" (Crear sala) y compartir el código que aparece; el otro jugador entra al mismo juego, abre el mismo menú y usa "Join Room" (Unirse a sala) pegando ese código. Solo entonces quedan conectados — no basta con que ambos tengan el mismo servidor configurado.';
-    } else {
-      els.playerHint.innerHTML = 'Toca o pasa el mouse cerca del borde de la pantalla del juego: ahí aparece la barra de EmulatorJS con el ícono de engranaje ⚙ para <strong>configurar teclas</strong>, guardar partida, pantalla completa y más. Usa "Guardar Estado" para que tu progreso se recuerde la próxima vez que abras este juego.';
     }
 
     emulatorRunning = true;
@@ -1089,13 +1054,11 @@
     document.body.appendChild(script);
   }
 
-  function blob_for(game){ return romBlobs[game.id]; }
-
   els.exitPlayer.addEventListener('click', function(){
-    if(confirm('¿Volver al estante? Se recargará la página para dejar todo limpio.')){
+    if(confirm('¿Volver al estante?')){
       emulatorRunning = false;
-      showToast('Guardando progreso antes de salir…', 2500);
-      setTimeout(function(){ location.reload(); }, 2000);
+      showToast('Saliendo…', 1500);
+      setTimeout(function(){ location.reload(); }, 1000);
     }
   });
 
