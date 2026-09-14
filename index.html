@@ -511,11 +511,11 @@
 
   var COVER_SIZE = 300;
 
-  var romBlobs = {};      // id -> Blob, cache en memoria para la sesión actual
-  var pendingRom = null;  // { buffer, size, suggestedName } mientras se llena el modal
+  var romBlobs = {};      
+  var pendingRom = null;  
   var pendingCoverDataUrl = null;
-  var reuploadTargetId = null; // cuando el usuario re-sube un ROM grande que no se pudo guardar
-  var emulatorRunning = false; // evita cerrar/recargar de golpe mientras el juego está guardando
+  var reuploadTargetId = null; 
+  var emulatorRunning = false; 
 
   var els = {
     grid: document.getElementById('grid'),
@@ -654,7 +654,6 @@
   function initPeer(onOpenCb){
     if(peer && !peer.destroyed) { if(onOpenCb) onOpenCb(peer.id); return; }
     
-    // Se agregan servidores STUN públicos para mantener la conexión estable en cualquier red
     peer = new Peer({
       config: {
         iceServers: [
@@ -690,13 +689,10 @@
   }
 
   els.openNetplay.addEventListener('click', openNetplayModal);
-  
-  // Al hacer clic en cerrar, SOLO ocultamos el modal sin destruir la conexión actual
   els.cancelNetplay.addEventListener('click', function(){
     closeNetplayModal();
   });
 
-  // Botón Crear Sala
   document.getElementById('netplay-btn-create').addEventListener('click', function(){
     initPeer(function(id){
       document.getElementById('netplay-menu-view').style.display = 'none';
@@ -714,7 +710,6 @@
     });
   });
 
-  // Botón Unirse a Sala
   document.getElementById('netplay-btn-join').addEventListener('click', function(){
     var code = document.getElementById('netplay-room-code-input').value.trim();
     if(!code){ showToast('Ingresa un código de sala válido.'); return; }
@@ -1034,7 +1029,7 @@
     ['EJS_player','EJS_core','EJS_pathtodata','EJS_gameUrl','EJS_gameName',
      'EJS_startOnLoaded','EJS_color','EJS_backgroundColor','EJS_emulator',
      'EJS_biosUrl','EJS_alignStartButton','EJS_gameID','EJS_defaultOptions',
-     'EJS_loadStateURL','EJS_onSaveState'].forEach(function(k){ try{ delete window[k]; }catch(e){ window[k] = undefined; } });
+     'EJS_loadStateURL','EJS_onSaveState','EJS_netplayServer','EJS_netplayICEServers'].forEach(function(k){ try{ delete window[k]; }catch(e){ window[k] = undefined; } });
 
     var objectUrl = URL.createObjectURL(romBlobs[game.id]);
 
@@ -1048,6 +1043,13 @@
     window.EJS_backgroundColor = '#0c0b10';
     window.EJS_alignStartButton = 'center';
     window.EJS_defaultOptions = { 'save-state-location': 'browser' };
+
+    // --- CONFIGURACIÓN DE NETPLAY CON RENDER ---
+    window.EJS_netplayServer = 'emulator-k3h8.onrender.com';
+    window.EJS_netplayICEServers = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' }
+    ];
 
     window.EJS_onSaveState = function(e){
       try{
