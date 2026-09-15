@@ -7,8 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<!-- Librería PeerJS para multijugador P2P -->
-<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
   :root{
     --bg-deep: #14121a;
@@ -47,24 +45,12 @@
   }
 
   a{ color: inherit; }
+  button{ font-family: var(--font-body); cursor: pointer; }
 
-  button{
-    font-family: var(--font-body);
-    cursor: pointer;
-  }
-
-  button:focus-visible,
-  input:focus-visible,
-  [tabindex]:focus-visible{
+  button:focus-visible, input:focus-visible{
     outline: 2px solid var(--screen-glow);
     outline-offset: 2px;
   }
-
-  @media (prefers-reduced-motion: reduce){
-    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
-  }
-
-  /* ---------- Layout shell ---------- */
 
   .app{
     max-width: 1080px;
@@ -129,29 +115,16 @@
   }
   .btn:active{ transform: scale(0.97); }
 
-  .btn-primary{
-    background: var(--shell-bright);
-    color: #171425;
-  }
+  .btn-primary{ background: var(--shell-bright); color: #171425; }
   .btn-primary:hover{ background: #ac93e0; }
 
-  .btn-ghost{
-    background: transparent;
-    color: var(--text-primary);
-    border: 1px solid var(--border-soft);
-  }
+  .btn-ghost{ background: transparent; color: var(--text-primary); border: 1px solid var(--border-soft); }
   .btn-ghost:hover{ border-color: var(--shell-bright); }
 
-  .btn-danger{
-    background: transparent;
-    color: var(--danger);
-    border: 1px solid rgba(209,99,122,0.4);
-  }
+  .btn-danger{ background: transparent; color: var(--danger); border: 1px solid rgba(209,99,122,0.4); }
   .btn-danger:hover{ background: rgba(209,99,122,0.12); color: var(--danger-bright); }
 
   #rom-input, #cover-input{ display: none; }
-
-  /* ---------- Shelf / grid ---------- */
 
   .shelf-heading{
     display: flex;
@@ -164,12 +137,8 @@
     color: var(--text-muted);
     font-weight: 600;
     margin: 0;
-    text-transform: none;
   }
-  .shelf-count{
-    font-size: 12px;
-    color: var(--text-muted);
-  }
+  .shelf-count{ font-size: 12px; color: var(--text-muted); }
 
   .grid{
     display: grid;
@@ -197,12 +166,7 @@
     background: var(--bg-panel-raised);
     border: 1px solid var(--border-soft);
   }
-  .cart-cover img{
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
+  .cart-cover img{ width: 100%; height: 100%; object-fit: cover; display: block; }
 
   .cart-name{
     font-size: 13px;
@@ -215,28 +179,12 @@
     -webkit-box-orient: vertical;
   }
 
-  .cart-meta{
-    font-size: 11px;
-    color: var(--text-muted);
-  }
+  .cart-meta{ font-size: 11px; color: var(--text-muted); }
   .cart-meta.warn{ color: var(--danger-bright); }
 
-  .cart-actions{
-    display: flex;
-    gap: 8px;
-    margin-top: 2px;
-  }
-  .cart-actions .btn{
-    flex: 1;
-    padding: 8px 10px;
-    font-size: 12.5px;
-  }
-  .cart-actions .btn-danger{
-    flex: 0 0 auto;
-    padding: 8px 10px;
-  }
-
-  /* ---------- Empty state ---------- */
+  .cart-actions{ display: flex; gap: 8px; margin-top: 2px; }
+  .cart-actions .btn{ flex: 1; padding: 8px 10px; font-size: 12.5px; }
+  .cart-actions .btn-danger{ flex: 0 0 auto; padding: 8px 10px; }
 
   .empty{
     border: 1px dashed var(--border-soft);
@@ -247,8 +195,6 @@
   }
   .empty strong{ color: var(--text-primary); display: block; margin-bottom: 6px; font-size: 15px; }
   .empty p{ margin: 0 0 18px; font-size: 13.5px; max-width: 46ch; margin-inline: auto; }
-
-  /* ---------- Modal (add cartridge) ---------- */
 
   .overlay{
     position: fixed;
@@ -270,19 +216,9 @@
     width: 100%;
     max-width: 380px;
   }
-  .modal h3{
-    font-family: var(--font-pixel);
-    font-size: 12px;
-    margin: 0 0 18px;
-    line-height: 1.6;
-  }
+  .modal h3{ font-family: var(--font-pixel); font-size: 12px; margin: 0 0 18px; line-height: 1.6; }
   .field{ margin-bottom: 16px; }
-  .field label{
-    display: block;
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-bottom: 6px;
-  }
+  .field label{ display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
   .field input[type="text"]{
     width: 100%;
     background: var(--bg-panel-raised);
@@ -292,11 +228,7 @@
     color: var(--text-primary);
     font-size: 14px;
   }
-  .cover-pick{
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
+  .cover-pick{ display: flex; align-items: center; gap: 12px; }
   .cover-pick .preview{
     width: 56px; height: 56px;
     border-radius: 6px;
@@ -306,32 +238,17 @@
     flex-shrink: 0;
   }
   .cover-pick .preview img{ width: 100%; height: 100%; object-fit: cover; }
-  .modal-actions{
-    display: flex;
-    gap: 10px;
-    margin-top: 6px;
-  }
+  .modal-actions{ display: flex; gap: 10px; margin-top: 6px; }
   .modal-actions .btn{ flex: 1; }
-  .modal-note{
-    font-size: 11.5px;
-    color: var(--text-muted);
-    margin-top: 14px;
-    line-height: 1.5;
-  }
+  .modal-note{ font-size: 11.5px; color: var(--text-muted); margin-top: 14px; line-height: 1.5; }
 
-  /* ---------- Player view ---------- */
-
-  .player-view{
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 18px;
-  }
+  /* Player View (RetroArch Web Frame) */
+  .player-view{ display: flex; flex-direction: column; align-items: center; gap: 18px; }
   .player-view[hidden]{ display: none; }
 
   .console{
     width: 100%;
-    max-width: 720px;
+    max-width: 900px;
     background: linear-gradient(160deg, var(--shell-bright), var(--shell));
     border-radius: 22px;
     padding: 18px;
@@ -350,12 +267,13 @@
     padding: 6px;
     box-shadow: inset 0 0 0 2px rgba(0,0,0,0.4);
   }
-  #game{
+  #retro-frame{
     width: 100%;
-    aspect-ratio: 3 / 2;
+    aspect-ratio: 4 / 3;
     background: #000;
     border-radius: 4px;
-    overflow: hidden;
+    border: none;
+    display: block;
   }
 
   .player-bar{
@@ -363,26 +281,19 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    max-width: 720px;
+    max-width: 900px;
     gap: 12px;
     flex-wrap: wrap;
   }
-  .player-title{
-    font-size: 14px;
-    font-weight: 600;
-  }
-
+  .player-title{ font-size: 14px; font-weight: 600; }
   .player-hint{
     font-size: 12.5px;
     color: var(--text-muted);
-    max-width: 520px;
+    max-width: 600px;
     text-align: center;
     line-height: 1.5;
     margin: 0;
   }
-  .player-hint strong{ color: var(--text-primary); }
-
-  /* ---------- Toast ---------- */
 
   .toast{
     position: fixed;
@@ -411,11 +322,10 @@
       <div class="brand-mark" aria-hidden="true"></div>
       <div>
         <h1>ESTANTE GBA</h1>
-        <p>Tu colección de cartuchos, en el navegador</p>
+        <p>Tu colección de cartuchos y emulación web</p>
       </div>
     </div>
-    <div style="display:flex; gap:10px;">
-      <button class="btn btn-ghost" id="open-netplay">Multijugador <span id="netplay-badge" style="opacity:0.7;"></span></button>
+    <div>
       <button class="btn btn-primary" id="open-add">Insertar cartucho</button>
     </div>
   </header>
@@ -428,7 +338,7 @@
     <div id="grid" class="grid" hidden></div>
     <div id="empty" class="empty" hidden>
       <strong>La estantería está vacía</strong>
-      <p>Sube un archivo .gba (o .zip con el ROM adentro) para agregar tu primer cartucho. Tú aportas tus propios archivos — esta página no incluye ni busca juegos.</p>
+      <p>Sube un archivo .gba para agregar tu primer juego a la colección.</p>
       <button class="btn btn-primary" id="open-add-empty">Insertar cartucho</button>
     </div>
   </main>
@@ -439,45 +349,17 @@
       <button class="btn btn-ghost" id="exit-player">Volver al estante</button>
     </div>
     <div class="console">
-      <div class="console-label">GAME BOY ADVANCE</div>
+      <div class="console-label">RETROARCH WEB ENGINE</div>
       <div class="screen-frame">
-        <div id="game"></div>
+        <iframe id="retro-frame" src=""></iframe>
       </div>
     </div>
-    <p class="player-hint" id="player-hint">Toca o pasa el mouse cerca del borde de la pantalla del juego: ahí aparece la barra de EmulatorJS con el ícono de engranaje ⚙ para <strong>configurar teclas</strong>, guardar partida, pantalla completa y más.</p>
+    <p class="player-hint">Los guardados internos del juego se gestionan directamente en el navegador de forma automática.</p>
   </section>
 
 </div>
 
-<!-- Modal Multijugador (P2P con PeerJS y manejo de errores) -->
-<div class="overlay" id="netplay-overlay" hidden>
-  <div class="modal">
-    <h3>SALA MULTIJUGADOR (NETPLAY)</h3>
-    
-    <div id="netplay-menu-view">
-      <p class="modal-note" style="margin-top:0; margin-bottom:16px;">Juega con un amigo en tiempo real. Ambos deben tener cargado el <strong>mismo juego</strong> en su estante.</p>
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        <button class="btn btn-primary" id="netplay-btn-create" type="button">Crear Sala</button>
-        <div style="display:flex; gap:8px;">
-          <input type="text" id="netplay-room-code-input" placeholder="Código de sala" style="flex:1;">
-          <button class="btn btn-ghost" id="netplay-btn-join" type="button">Unirse</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="netplay-room-view" style="display:none; text-align:center;">
-      <p class="modal-note">Código de tu sala (compártelo con tu amigo):</p>
-      <div id="netplay-display-code" style="font-family:var(--font-pixel); font-size:12px; background:var(--bg-panel-raised); padding:12px; border-radius:8px; margin:10px 0; color:var(--screen-glow); word-break: break-all;">---</div>
-      <p id="netplay-status-text" class="modal-note">Esperando conexión...</p>
-      <button class="btn btn-ghost" id="netplay-btn-back" type="button" style="margin-top:12px; width:100%;">Volver / Reintentar</button>
-    </div>
-
-    <div class="modal-actions" style="margin-top:20px;">
-      <button class="btn btn-ghost" id="cancel-netplay" type="button">Cerrar</button>
-    </div>
-  </div>
-</div>
-
+<!-- Modal para agregar cartuchos -->
 <div class="overlay" id="add-overlay" hidden>
   <div class="modal">
     <h3>NUEVO CARTUCHO</h3>
@@ -491,7 +373,6 @@
         <div class="preview" id="cover-preview"></div>
         <button class="btn btn-ghost" id="pick-cover" type="button">Elegir imagen</button>
       </div>
-      <p class="modal-note" style="margin-top:8px;">Los archivos .gba no traen una carátula incluida. Si no eliges una imagen, se genera una portada automática con las iniciales del juego.</p>
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" id="cancel-add" type="button">Cancelar</button>
@@ -503,7 +384,6 @@
 
 <input type="file" id="rom-input" accept=".gba,.zip">
 <input type="file" id="cover-input" accept="image/*">
-
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -511,12 +391,10 @@
   "use strict";
 
   var COVER_SIZE = 300;
-
   var romBlobs = {};      
   var pendingRom = null;  
   var pendingCoverDataUrl = null;
   var reuploadTargetId = null; 
-  var emulatorRunning = false; 
 
   var els = {
     grid: document.getElementById('grid'),
@@ -537,13 +415,8 @@
     libraryView: document.getElementById('library-view'),
     playerTitle: document.getElementById('player-title'),
     exitPlayer: document.getElementById('exit-player'),
-    gameContainer: document.getElementById('game'),
-    toast: document.getElementById('toast'),
-    playerHint: document.getElementById('player-hint'),
-    openNetplay: document.getElementById('open-netplay'),
-    netplayBadge: document.getElementById('netplay-badge'),
-    netplayOverlay: document.getElementById('netplay-overlay'),
-    cancelNetplay: document.getElementById('cancel-netplay')
+    retroFrame: document.getElementById('retro-frame'),
+    toast: document.getElementById('toast')
   };
 
   function showToast(msg, ms){
@@ -562,22 +435,19 @@
     return Math.max(1, Math.round(bytes/1024)) + ' KB';
   }
 
-  /* ---------- IndexedDB storage ---------- */
-
-  var DB_NAME = 'estante-gba-db';
-  var DB_VERSION = 2;
+  /* IndexedDB Storage */
+  var DB_NAME = 'estante-retro-db';
+  var DB_VERSION = 1;
   var dbPromise = null;
 
   function openDB(){
     if(dbPromise) return dbPromise;
     dbPromise = new Promise(function(resolve, reject){
-      if(!window.indexedDB){ reject(new Error('IndexedDB no disponible')); return; }
       var req = indexedDB.open(DB_NAME, DB_VERSION);
       req.onupgradeneeded = function(e){
         var db = e.target.result;
         if(!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
         if(!db.objectStoreNames.contains('roms')) db.createObjectStore('roms');
-        if(!db.objectStoreNames.contains('states')) db.createObjectStore('states');
       };
       req.onsuccess = function(){ resolve(req.result); };
       req.onerror = function(){ reject(req.error); };
@@ -603,7 +473,6 @@
         tx.objectStore(store).put(value, key);
         tx.oncomplete = function(){ resolve(true); };
         tx.onerror = function(){ reject(tx.error); };
-        tx.onabort = function(){ reject(tx.error); };
       });
     });
   }
@@ -620,253 +489,18 @@
   }
 
   async function loadLibrary(){
-    try{
-      var list = await idbGet('meta', 'library');
-      return list || [];
-    }catch(e){ return []; }
+    try { var list = await idbGet('meta', 'library'); return list || []; } catch(e){ return []; }
   }
 
   async function saveLibrary(list){
-    try{ await idbSet('meta', 'library', list); }catch(e){}
+    try { await idbSet('meta', 'library', list); } catch(e){}
   }
 
   async function tryStoreRom(id, buffer){
-    try{
+    try {
       await idbSet('roms', id, new Blob([buffer], { type: 'application/octet-stream' }));
-      return { ok: true, error: null };
-    }catch(e){
-      return { ok: false, error: e.message };
-    }
-  }
-
-  async function deleteStoredRom(game){
-    try{ await idbDelete('roms', game.id); }catch(e){}
-  }
-
-  async function fetchStoredRomBlob(game){
-    try{ return await idbGet('roms', game.id) || null; }catch(e){ return null; }
-  }
-
-  /* ---------- Netplay P2P (PeerJS con diagnóstico de errores) ---------- */
-
-  var peer = null;
-  var conn = null;
-
-  function initPeer(onOpenCb){
-    if(peer && !peer.destroyed) { if(onOpenCb) onOpenCb(peer.id); return; }
-    
-    // Extraemos el host y path de tu URL de Render para configurar PeerJS explícitamente
-    peer = new Peer({
-      host: 'emulator-k3h8.onrender.com',
-      port: 443,
-      secure: true,
-      path: '/peerjs',
-      config: {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ]
-      }
-    });
-
-    peer.on('open', function(id){
-      if(onOpenCb) onOpenCb(id);
-    });
-
-    peer.on('error', function(err){
-      console.error('Error detallado de PeerJS:', err);
-      var errorMsg = 'Error desconocido';
-      
-      if(err.type === 'server-error'){
-        errorMsg = 'El servidor de Render no responde o está apagado.';
-      } else if(err.type === 'peer-unavailable'){
-        errorMsg = 'No se encontró la sala con ese código (verifica que esté bien escrito o que el creador siga conectado).';
-      } else if(err.type === 'network'){
-        errorMsg = 'Error de red o internet.';
-      } else if(err.type === 'invalid-id'){
-        errorMsg = 'El código de sala ingresado no es válido.';
-      } else {
-        errorMsg = err.type ? ('Error: ' + err.type) : err.message;
-      }
-
-      document.getElementById('netplay-status-text').innerHTML = '<span style="color:var(--danger-bright);">❌ ' + errorMsg + '</span>';
-      showToast('Fallo en la conexión: ' + err.type);
-    });
-  }
-
-  function openNetplayModal(){
-    if (conn && conn.open) {
-      document.getElementById('netplay-menu-view').style.display = 'none';
-      document.getElementById('netplay-room-view').style.display = 'block';
-      document.getElementById('netplay-status-text').textContent = '¡Conectado a la sala!';
-    } else {
-      document.getElementById('netplay-menu-view').style.display = 'block';
-      document.getElementById('netplay-room-view').style.display = 'none';
-    }
-    els.netplayOverlay.hidden = false;
-  }
-
-  function closeNetplayModal(){
-    els.netplayOverlay.hidden = true;
-  }
-
-  els.openNetplay.addEventListener('click', openNetplayModal);
-  els.cancelNetplay.addEventListener('click', function(){
-    closeNetplayModal();
-  });
-
-  document.getElementById('netplay-btn-back').addEventListener('click', function(){
-    if(peer) { peer.destroy(); peer = null; }
-    conn = null;
-    document.getElementById('netplay-menu-view').style.display = 'block';
-    document.getElementById('netplay-room-view').style.display = 'none';
-    refreshNetplayBadge();
-  });
-
-  document.getElementById('netplay-btn-create').addEventListener('click', function(){
-    document.getElementById('netplay-menu-view').style.display = 'none';
-    document.getElementById('netplay-room-view').style.display = 'block';
-    document.getElementById('netplay-display-code').textContent = 'Generando...';
-    document.getElementById('netplay-status-text').textContent = 'Conectando al servidor en Render...';
-
-    initPeer(function(id){
-      document.getElementById('netplay-display-code').textContent = id;
-      document.getElementById('netplay-status-text').textContent = 'Sala lista. Esperando a que tu amigo se una...';
-      
-      peer.off('connection');
-      peer.on('connection', function(connection){
-        conn = connection;
-        setupConnectionEvents();
-        document.getElementById('netplay-status-text').textContent = '¡Amigo conectado con éxito!';
-        showToast('¡Jugador conectado!');
-      });
-    });
-  });
-
-  document.getElementById('netplay-btn-join').addEventListener('click', function(){
-    var code = document.getElementById('netplay-room-code-input').value.trim();
-    if(!code){ showToast('Ingresa un código de sala válido.'); return; }
-    
-    document.getElementById('netplay-menu-view').style.display = 'none';
-    document.getElementById('netplay-room-view').style.display = 'block';
-    document.getElementById('netplay-display-code').textContent = code;
-    document.getElementById('netplay-status-text').textContent = 'Conectando al servidor y buscando la sala...';
-
-    initPeer(function(){
-      conn = peer.connect(code);
-      setupConnectionEvents();
-    });
-  });
-
-  function setupConnectionEvents(){
-    if(!conn) return;
-
-    conn.on('open', function(){
-      document.getElementById('netplay-status-text').textContent = '¡Conectado directamente con el amigo!';
-      showToast('Conexión P2P establecida.');
-      refreshNetplayBadge();
-    });
-    
-    conn.on('data', function(data){
-      console.log('Datos recibidos:', data);
-    });
-
-    conn.on('close', function(){
-      document.getElementById('netplay-status-text').innerHTML = '<span style="color:var(--danger-bright);">⚠️ La conexión se ha cerrado.</span>';
-      showToast('La conexión multijugador se ha cerrado.');
-      refreshNetplayBadge();
-    });
-  }
-
-  function refreshNetplayBadge(){
-    els.netplayBadge.textContent = (conn && conn.open) ? '· conectado' : '';
-  }
-
-  /* ---------- game states storage ---------- */
-
-  async function saveGameState(gameId, stateBuffer){
-    try{ await idbSet('states', gameId, stateBuffer); }catch(e){}
-  }
-
-  async function loadGameState(gameId){
-    try{ return await idbGet('states', gameId); }catch(e){ return null; }
-  }
-
-  /* ---------- cover generation ---------- */
-
-  function hueFromName(name){
-    var h = 0;
-    for(var i=0; i<name.length; i++){ h = (h * 31 + name.charCodeAt(i)) | 0; }
-    return Math.abs(h) % 360;
-  }
-
-  async function generatePlaceholderCover(name){
-    var canvas = document.createElement('canvas');
-    canvas.width = COVER_SIZE;
-    canvas.height = COVER_SIZE;
-    var ctx = canvas.getContext('2d');
-    var hue = hueFromName(name || 'GBA');
-
-    var grad = ctx.createLinearGradient(0, 0, COVER_SIZE, COVER_SIZE);
-    grad.addColorStop(0, 'hsl(' + hue + ', 48%, 34%)');
-    grad.addColorStop(1, 'hsl(' + ((hue+40)%360) + ', 55%, 16%)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, COVER_SIZE, COVER_SIZE);
-
-    try{ await document.fonts.load("16px 'Press Start 2P'"); }catch(e){}
-
-    var initials = (name || 'GBA').trim().split(/\s+/).slice(0,2).map(function(w){return w[0];}).join('').toUpperCase() || 'GB';
-    ctx.font = "700 44px 'Press Start 2P', monospace";
-    ctx.fillStyle = 'rgba(255,255,255,0.92)';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(initials.slice(0,2), COVER_SIZE/2, COVER_SIZE/2 + 4);
-
-    return canvas.toDataURL('image/jpeg', 0.82);
-  }
-
-  function fileToResizedDataUrl(file){
-    return new Promise(function(resolve, reject){
-      var reader = new FileReader();
-      reader.onerror = reject;
-      reader.onload = function(){
-        var img = new Image();
-        img.onerror = reject;
-        img.onload = function(){
-          var canvas = document.createElement('canvas');
-          canvas.width = COVER_SIZE;
-          canvas.height = COVER_SIZE;
-          var ctx = canvas.getContext('2d');
-          var side = Math.min(img.width, img.height);
-          var sx = (img.width - side) / 2;
-          var sy = (img.height - side) / 2;
-          ctx.drawImage(img, sx, sy, side, side, 0, 0, COVER_SIZE, COVER_SIZE);
-          resolve(canvas.toDataURL('image/jpeg', 0.82));
-        };
-        img.src = reader.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-
-  /* ---------- rendering ---------- */
-
-  function stripExt(filename){
-    return filename.replace(/\.(gba|zip)$/i, '');
-  }
-
-  function parseGbaHeader(buffer){
-    if(buffer.byteLength < 0xB0) return null;
-    var bytes = new Uint8Array(buffer, 0xA0, 12);
-    var chars = [];
-    for(var i=0; i<bytes.length; i++){
-      var c = bytes[i];
-      if(c === 0) break;
-      if(c < 0x20 || c > 0x7E) return null;
-      chars.push(String.fromCharCode(c));
-    }
-    var title = chars.join('').trim();
-    return title || null;
+      return { ok: true };
+    } catch(e){ return { ok: false }; }
   }
 
   async function render(){
@@ -890,7 +524,6 @@
       cover.className = 'cart-cover';
       var img = document.createElement('img');
       img.src = game.cover;
-      img.alt = '';
       cover.appendChild(img);
 
       var name = document.createElement('div');
@@ -898,8 +531,8 @@
       name.textContent = game.name;
 
       var meta = document.createElement('div');
-      meta.className = 'cart-meta' + (game.stored ? '' : ' warn');
-      meta.textContent = game.stored ? fmtSize(game.size) : fmtSize(game.size) + ' · sin guardar';
+      meta.className = 'cart-meta';
+      meta.textContent = fmtSize(game.size);
 
       var actions = document.createElement('div');
       actions.className = 'cart-actions';
@@ -912,11 +545,17 @@
       var delBtn = document.createElement('button');
       delBtn.className = 'btn btn-danger';
       delBtn.textContent = '✕';
-      delBtn.addEventListener('click', function(){ removeGame(game.id); });
+      delBtn.addEventListener('click', async function(){
+        if(confirm('¿Eliminar este cartucho?')){
+          await idbDelete('roms', game.id);
+          var updated = (await loadLibrary()).filter(function(g){ return g.id !== game.id; });
+          await saveLibrary(updated);
+          render();
+        }
+      });
 
       actions.appendChild(playBtn);
       actions.appendChild(delBtn);
-
       card.appendChild(cover);
       card.appendChild(name);
       card.appendChild(meta);
@@ -925,205 +564,82 @@
     });
   }
 
-  async function removeGame(id){
-    var list = await loadLibrary();
-    var game = list.find(function(g){ return g.id === id; });
-    if(!confirm('¿Eliminar "' + (game ? game.name : 'este cartucho') + '" de la estantería?')) return;
-    list = list.filter(function(g){ return g.id !== id; });
-    await saveLibrary(list);
-    if(game) await deleteStoredRom(game);
-    delete romBlobs[id];
-    render();
-  }
-
-  /* ---------- add flow ---------- */
-
+  /* Modales y subida */
   function openAddModal(){
     pendingRom = null;
     pendingCoverDataUrl = null;
     els.gameName.value = '';
     els.coverPreview.innerHTML = '';
-    els.addNote.textContent = 'Elige un archivo .gba desde tu computadora.';
     els.romInput.value = '';
-    els.coverInput.value = '';
     els.addOverlay.hidden = false;
     els.romInput.click();
   }
 
-  function closeAddModal(){
-    els.addOverlay.hidden = true;
-  }
-
   els.openAdd.addEventListener('click', openAddModal);
   els.openAddEmpty.addEventListener('click', openAddModal);
-  els.cancelAdd.addEventListener('click', closeAddModal);
+  els.cancelAdd.addEventListener('click', function(){ els.addOverlay.hidden = true; });
 
-  function handleAddFileSelected(file){
-    if(!file) { els.addOverlay.hidden = true; return; }
+  els.romInput.addEventListener('change', function(){
+    var file = els.romInput.files[0];
+    if(!file){ els.addOverlay.hidden = true; return; }
     var reader = new FileReader();
     reader.onload = function(){
-      var headerTitle = parseGbaHeader(reader.result);
-      pendingRom = {
-        buffer: reader.result,
-        size: reader.result.byteLength,
-        suggestedName: headerTitle || stripExt(file.name)
-      };
-      els.gameName.value = pendingRom.suggestedName;
-      els.addNote.textContent = 'Este archivo (' + fmtSize(pendingRom.size) + ') se guardará en tu navegador.';
+      pendingRom = { buffer: reader.result, size: reader.result.byteLength, name: file.name.replace(/\.[^/.]+$/, "") };
+      els.gameName.value = pendingRom.name;
     };
     reader.readAsArrayBuffer(file);
-  }
+  });
 
   els.pickCover.addEventListener('click', function(){ els.coverInput.click(); });
-
   els.coverInput.addEventListener('change', async function(){
     var file = els.coverInput.files[0];
     if(!file) return;
-    var dataUrl = await fileToResizedDataUrl(file);
-    pendingCoverDataUrl = dataUrl;
-    els.coverPreview.innerHTML = '<img src="' + dataUrl + '" alt="">';
+    var reader = new FileReader();
+    reader.onload = function(e){
+      pendingCoverDataUrl = e.target.result;
+      els.coverPreview.innerHTML = '<img src="' + pendingCoverDataUrl + '">';
+    };
+    reader.readAsDataURL(file);
   });
 
   els.confirmAdd.addEventListener('click', async function(){
-    if(!pendingRom){ showToast('Primero elige un archivo .gba.'); return; }
-    var name = els.gameName.value.trim() || pendingRom.suggestedName || 'Juego sin nombre';
-
-    els.confirmAdd.disabled = true;
-    els.confirmAdd.textContent = 'Agregando…';
-
+    if(!pendingRom) return;
     var id = uid();
-    var cover = pendingCoverDataUrl || await generatePlaceholderCover(name);
-    romBlobs[id] = new Blob([pendingRom.buffer], { type: 'application/octet-stream' });
+    var name = els.gameName.value.trim() || pendingRom.name;
+    var cover = pendingCoverDataUrl || 'https://via.placeholder.com/300?text=' + encodeURIComponent(name);
 
-    var storeResult = await tryStoreRom(id, pendingRom.buffer);
-    var stored = storeResult.ok;
-
+    await tryStoreRom(id, pendingRom.buffer);
     var list = await loadLibrary();
-    list.push({
-      id: id,
-      name: name,
-      cover: cover,
-      size: pendingRom.size,
-      stored: stored,
-      addedAt: Date.now()
-    });
+    list.push({ id: id, name: name, cover: cover, size: pendingRom.size });
     await saveLibrary(list);
 
-    els.confirmAdd.disabled = false;
-    els.confirmAdd.textContent = 'Agregar';
-    closeAddModal();
+    els.addOverlay.hidden = true;
     render();
+    showToast('Cartucho agregado con éxito');
   });
-
-  els.romInput.addEventListener('change', async function(){
-    var file = els.romInput.files[0];
-    if(reuploadTargetId){
-      var id = reuploadTargetId;
-      reuploadTargetId = null;
-      if(!file) return;
-      try{
-        var buffer = await file.arrayBuffer();
-        romBlobs[id] = new Blob([buffer], { type: 'application/octet-stream' });
-        var list = await loadLibrary();
-        var game = list.find(function(g){ return g.id === id; });
-        if(game) startEmulator(game);
-      }catch(e){ showToast('No se pudo leer ese archivo.'); }
-      return;
-    }
-    handleAddFileSelected(file);
-  });
-
-  /* ---------- player ---------- */
 
   async function playGame(game){
-    var blob = romBlobs[game.id];
-    if(!blob && game.stored){
-      blob = await fetchStoredRomBlob(game);
-      if(blob) romBlobs[game.id] = blob;
-    }
-    if(!blob){
-      reuploadTargetId = game.id;
-      showToast('Selecciona el archivo .gba correspondiente para jugar.');
-      els.romInput.value = '';
-      els.romInput.click();
-      return;
-    }
-    startEmulator(game);
-  }
+    var blob = await idbGet('roms', game.id);
+    if(!blob){ showToast('No se encontró el archivo ROM.'); return; }
 
-  async function startEmulator(game){
+    var romUrl = URL.createObjectURL(blob);
+    // Usamos mGBA en WebRetro para GBA. En el futuro para 3D solo cambias el parámetro core (ej. 'swanstation' para PS1)
+    var core = 'mgba'; 
+    var webRetroUrl = 'https://binbashbanana.github.io/webretro/?core=' + core + '&rom=' + encodeURIComponent(romUrl);
+
     els.libraryView.hidden = true;
     els.playerView.hidden = false;
     els.playerTitle.textContent = game.name;
-    els.gameContainer.innerHTML = '';
-
-    var oldLoader = document.querySelector('script[data-ejs-loader]');
-    if(oldLoader) oldLoader.remove();
-
-    ['EJS_player','EJS_core','EJS_pathtodata','EJS_gameUrl','EJS_gameName',
-     'EJS_startOnLoaded','EJS_color','EJS_backgroundColor','EJS_emulator',
-     'EJS_biosUrl','EJS_alignStartButton','EJS_gameID','EJS_defaultOptions',
-     'EJS_loadStateURL','EJS_onSaveState','EJS_netplayServer','EJS_netplayICEServers'].forEach(function(k){ try{ delete window[k]; }catch(e){ window[k] = undefined; } });
-
-    var objectUrl = URL.createObjectURL(romBlobs[game.id]);
-
-    window.EJS_player = '#game';
-    window.EJS_core = 'gba';
-    window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
-    window.EJS_gameUrl = objectUrl;
-    window.EJS_gameName = game.name;
-    window.EJS_startOnLoaded = true;
-    window.EJS_color = '#9b7fd6';
-    window.EJS_backgroundColor = '#0c0b10';
-    window.EJS_alignStartButton = 'center';
-    window.EJS_defaultOptions = { 'save-state-location': 'browser' };
-
-    window.EJS_netplayServer = 'https://emulator-k3h8.onrender.com';
-    window.EJS_netplayICEServers = [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' }
-    ];
-
-    window.EJS_onSaveState = function(e){
-      try{
-        var stateBuffer = (e && typeof e === 'object') ? (e.state || e.save || e.data || e.buffer || null) : null;
-        if(stateBuffer){
-          saveGameState(game.id, stateBuffer).then(function(){ showToast('Progreso guardado ✅', 2000); });
-        }
-      }catch(err){}
-    };
-
-    var savedState = await loadGameState(game.id);
-    if(savedState){
-      var stateBlob = new Blob([savedState], { type: 'application/octet-stream' });
-      window.EJS_loadStateURL = URL.createObjectURL(stateBlob);
-    }
-
-    emulatorRunning = true;
-
-    var script = document.createElement('script');
-    script.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
-    script.setAttribute('data-ejs-loader', 'true');
-    document.body.appendChild(script);
+    els.retroFrame.src = webRetroUrl;
   }
 
   els.exitPlayer.addEventListener('click', function(){
-    if(confirm('¿Volver al estante?')){
-      emulatorRunning = false;
-      showToast('Saliendo…', 1500);
-      setTimeout(function(){ location.reload(); }, 1000);
-    }
-  });
-
-  window.addEventListener('beforeunload', function(e){
-    if(emulatorRunning){
-      e.preventDefault();
-      e.returnValue = '';
-    }
+    els.retroFrame.src = '';
+    els.playerView.hidden = true;
+    els.libraryView.hidden = false;
   });
 
   render();
-  refreshNetplayBadge();
 })();
 </script>
 
