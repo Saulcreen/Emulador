@@ -449,7 +449,7 @@
 
 </div>
 
-<!-- Modal Multijugador (P2P con PeerJS) -->
+<!-- Modal Multijugador (P2P con PeerJS y manejo de errores) -->
 <div class="overlay" id="netplay-overlay" hidden>
   <div class="modal">
     <h3>SALA MULTIJUGADOR (NETPLAY)</h3>
@@ -469,6 +469,7 @@
       <p class="modal-note">Código de tu sala (compártelo con tu amigo):</p>
       <div id="netplay-display-code" style="font-family:var(--font-pixel); font-size:12px; background:var(--bg-panel-raised); padding:12px; border-radius:8px; margin:10px 0; color:var(--screen-glow); word-break: break-all;">---</div>
       <p id="netplay-status-text" class="modal-note">Esperando conexión...</p>
+      <button class="btn btn-ghost" id="netplay-btn-back" type="button" style="margin-top:12px; width:100%;">Volver / Reintentar</button>
     </div>
 
     <div class="modal-actions" style="margin-top:20px;">
@@ -646,7 +647,7 @@
     try{ return await idbGet('roms', game.id) || null; }catch(e){ return null; }
   }
 
-  /* ---------- Netplay P2P (PeerJS) ---------- */
+  /* ---------- Netplay P2P (PeerJS con diagnóstico de errores) ---------- */
 
   var peer = null;
   var conn = null;
@@ -654,7 +655,12 @@
   function initPeer(onOpenCb){
     if(peer && !peer.destroyed) { if(onOpenCb) onOpenCb(peer.id); return; }
     
+    // Extraemos el host y path de tu URL de Render para configurar PeerJS explícitamente
     peer = new Peer({
+      host: 'emulator-k3h8.onrender.com',
+      port: 443,
+      secure: true,
+      path: '/peerjs',
       config: {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
@@ -666,9 +672,25 @@
     peer.on('open', function(id){
       if(onOpenCb) onOpenCb(id);
     });
+
     peer.on('error', function(err){
-      console.error('Error de PeerJS:', err);
-      showToast('Error en la conexión multijugador.');
+      console.error('Error detallado de PeerJS:', err);
+      var errorMsg = 'Error desconocido';
+      
+      if(err.type === 'server-error'){
+        errorMsg = 'El servidor de Render no responde o está apagado.';
+      } else if(err.type === 'peer-unavailable'){
+        errorMsg = 'No se encontró la sala con ese código (verifica que esté bien escrito o que el creador siga conectado).';
+      } else if(err.type === 'network'){
+        errorMsg = 'Error de red o internet.';
+      } else if(err.type === 'invalid-id'){
+        errorMsg = 'El código de sala ingresado no es válido.';
+      } else {
+        errorMsg = err.type ? ('Error: ' + err.type) : err.message;
+      }
+
+      document.getElementById('netplay-status-text').innerHTML = '<span style="color:var(--danger-bright);">❌ ' + errorMsg + '</span>';
+      showToast('Fallo en la conexión: ' + err.type);
     });
   }
 
@@ -693,10 +715,21 @@
     closeNetplayModal();
   });
 
+  document.getElementById('netplay-btn-back').addEventListener('click', function(){
+    if(peer) { peer.destroy(); peer = null; }
+    conn = null;
+    document.getElementById('netplay-menu-view').style.display = 'block';
+    document.getElementById('netplay-room-view').style.display = 'none';
+    refreshNetplayBadge();
+  });
+
   document.getElementById('netplay-btn-create').addEventListener('click', function(){
+    document.getElementById('netplay-menu-view').style.display = 'none';
+    document.getElementById('netplay-room-view').style.display = 'block';
+    document.getElementById('netplay-display-code').textContent = 'Generando...';
+    document.getElementById('netplay-status-text').textContent = 'Conectando al servidor en Render...';
+
     initPeer(function(id){
-      document.getElementById('netplay-menu-view').style.display = 'none';
-      document.getElementById('netplay-room-view').style.display = 'block';
       document.getElementById('netplay-display-code').textContent = id;
       document.getElementById('netplay-status-text').textContent = 'Sala lista. Esperando a que tu amigo se una...';
       
@@ -704,8 +737,8 @@
       peer.on('connection', function(connection){
         conn = connection;
         setupConnectionEvents();
-        document.getElementById('netplay-status-text').textContent = '¡Amigo conectado! Ya puedes abrir el juego.';
-        showToast('¡Jugador conectado con éxito!');
+        document.getElementById('netplay-status-text').textContent = '¡Amigo conectado con éxito!';
+        showToast('¡Jugador conectado!');
       });
     });
   });
@@ -714,14 +747,14 @@
     var code = document.getElementById('netplay-room-code-input').value.trim();
     if(!code){ showToast('Ingresa un código de sala válido.'); return; }
     
+    document.getElementById('netplay-menu-view').style.display = 'none';
+    document.getElementById('netplay-room-view').style.display = 'block';
+    document.getElementById('netplay-display-code').textContent = code;
+    document.getElementById('netplay-status-text').textContent = 'Conectando al servidor y buscando la sala...';
+
     initPeer(function(){
       conn = peer.connect(code);
       setupConnectionEvents();
-      
-      document.getElementById('netplay-menu-view').style.display = 'none';
-      document.getElementById('netplay-room-view').style.display = 'block';
-      document.getElementById('netplay-display-code').textContent = code;
-      document.getElementById('netplay-status-text').textContent = 'Conectando a la sala...';
     });
   });
 
@@ -729,8 +762,8 @@
     if(!conn) return;
 
     conn.on('open', function(){
-      document.getElementById('netplay-status-text').textContent = '¡Conectado a la sala! Abre el juego.';
-      showToast('Conexión establecida con el anfitrión.');
+      document.getElementById('netplay-status-text').textContent = '¡Conectado directamente con el amigo!';
+      showToast('Conexión P2P establecida.');
       refreshNetplayBadge();
     });
     
@@ -739,6 +772,7 @@
     });
 
     conn.on('close', function(){
+      document.getElementById('netplay-status-text').innerHTML = '<span style="color:var(--danger-bright);">⚠️ La conexión se ha cerrado.</span>';
       showToast('La conexión multijugador se ha cerrado.');
       refreshNetplayBadge();
     });
@@ -1044,7 +1078,6 @@
     window.EJS_alignStartButton = 'center';
     window.EJS_defaultOptions = { 'save-state-location': 'browser' };
 
-    // --- CONFIGURACIÓN DE NETPLAY CON RENDER (CORREGIDA) ---
     window.EJS_netplayServer = 'https://emulator-k3h8.onrender.com';
     window.EJS_netplayICEServers = [
       { urls: 'stun:stun.l.google.com:19302' },
